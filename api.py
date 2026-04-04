@@ -1,3 +1,5 @@
+import subprocess
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -6,14 +8,29 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from memory_engine import ask
-
 load_dotenv()
 
 _ROOT = Path(__file__).resolve().parent
 _STATIC = _ROOT / "static"
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    vs = _ROOT / "dvc_vectorstore" / "index.faiss"
+    if not vs.is_file():
+        print("Vector store not found — running ingestion...")
+        subprocess.run(
+            ["python3", "ingest_affinity.py"],
+            cwd=str(_ROOT),
+            check=True,
+        )
+        print("Ingestion complete.")
+    yield
+
+
+from memory_engine import ask
+
+app = FastAPI(lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(_STATIC)), name="static")
 
 

@@ -17,14 +17,6 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 _ROOT = Path(__file__).resolve().parent
 _VECTORSTORE_DIR = _ROOT / "dvc_vectorstore"
-_FAISS_INDEX = _VECTORSTORE_DIR / "index.faiss"
-_FAISS_PKL = _VECTORSTORE_DIR / "index.pkl"
-
-if not _FAISS_INDEX.is_file() or not _FAISS_PKL.is_file():
-    raise SystemExit(
-        f"No FAISS index under {_VECTORSTORE_DIR} (need index.faiss and index.pkl).\n"
-        "Build it first: python3 ingest_affinity.py"
-    )
 
 embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
 llm = ChatOpenAI(
@@ -33,15 +25,22 @@ llm = ChatOpenAI(
     openai_api_key=OPENAI_API_KEY,
 )
 
-vectorstore = FAISS.load_local(
-    str(_VECTORSTORE_DIR),
-    embeddings,
-    allow_dangerous_deserialization=True,
-)
+vectorstore = None
+
+
+def get_vectorstore():
+    global vectorstore
+    if vectorstore is None:
+        vectorstore = FAISS.load_local(
+            str(_VECTORSTORE_DIR),
+            embeddings,
+            allow_dangerous_deserialization=True,
+        )
+    return vectorstore
 
 
 def search_deals(query: str, k: int = 8) -> str:
-    docs = vectorstore.similarity_search(query, k=k)
+    docs = get_vectorstore().similarity_search(query, k=k)
     return "\n\n".join(
         [
             f"Company: {d.metadata.get('company')}\n"
@@ -54,7 +53,7 @@ def search_deals(query: str, k: int = 8) -> str:
 
 
 def search_recent(query: str) -> str:
-    docs = vectorstore.similarity_search(query, k=20)
+    docs = get_vectorstore().similarity_search(query, k=20)
     docs_sorted = sorted(
         docs,
         key=lambda d: d.metadata.get("date", ""),
@@ -71,7 +70,7 @@ def search_recent(query: str) -> str:
 
 
 def search_with_notes(query: str) -> str:
-    docs = vectorstore.similarity_search(query, k=10)
+    docs = get_vectorstore().similarity_search(query, k=10)
     results = []
     for d in docs:
         pc = d.page_content.lower()
@@ -114,7 +113,7 @@ def ask(query: str, verbose: bool = False) -> dict:
         print(f"Time sensitive: {classification.time_sensitive}")
 
     if classification.time_sensitive or classification.category == "temporal":
-        docs = vectorstore.similarity_search(query, k=20)
+        docs = get_vectorstore().similarity_search(query, k=20)
         docs_sorted = sorted(
             docs,
             key=lambda d: d.metadata.get("date", ""),
