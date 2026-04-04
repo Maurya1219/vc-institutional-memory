@@ -1,6 +1,3 @@
-import os
-from contextlib import asynccontextmanager
-
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
@@ -9,23 +6,9 @@ from pydantic import BaseModel
 
 load_dotenv()
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    if not os.path.exists("dvc_vectorstore/index.faiss"):
-        print("Vector store not found — running ingestion...")
-        from ingest_affinity import main
-
-        main()
-        print("Ingestion complete.")
-    else:
-        print("Vector store found — skipping ingestion.")
-    yield
-
-
 from memory_engine import ask
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
