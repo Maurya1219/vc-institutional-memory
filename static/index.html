@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DVC Institutional Memory</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; }
+  .header { background: #1a3a5c; padding: 20px 32px; display: flex; align-items: center; gap: 16px; }
+  .header h1 { color: white; font-size: 18px; font-weight: 600; }
+  .header span { color: #7aafd4; font-size: 13px; }
+  .container { max-width: 860px; margin: 0 auto; padding: 32px 20px; }
+  .search-card { background: white; border: 1px solid #e5e5e5; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+  .search-row { display: flex; gap: 10px; }
+  textarea { flex: 1; border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px; font-size: 14px; font-family: inherit; resize: none; height: 72px; outline: none; transition: border-color 0.2s; }
+  textarea:focus { border-color: #1a3a5c; }
+  .btn { background: #1a3a5c; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; cursor: pointer; white-space: nowrap; align-self: flex-end; transition: opacity 0.2s; }
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .examples { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .example { background: #f0f4f8; border: none; border-radius: 99px; padding: 5px 12px; font-size: 12px; color: #1a3a5c; cursor: pointer; transition: background 0.15s; }
+  .example:hover { background: #dce8f5; }
+  .result-card { background: white; border: 1px solid #e5e5e5; border-radius: 12px; padding: 24px; margin-bottom: 16px; display: none; }
+  .result-meta { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .badge { font-size: 11px; padding: 3px 10px; border-radius: 99px; font-weight: 500; }
+  .badge-category { background: #eef2ff; color: #4338ca; }
+  .badge-conflict { background: #fef3c7; color: #92400e; }
+  .badge-stale { background: #fee2e2; color: #991b1b; }
+  .badge-confidence-high { background: #d1fae5; color: #065f46; }
+  .badge-confidence-medium { background: #fef3c7; color: #92400e; }
+  .badge-confidence-low { background: #fee2e2; color: #991b1b; }
+  .answer { font-size: 14px; line-height: 1.8; white-space: pre-wrap; color: #1a1a1a; }
+  .stale-section { margin-top: 16px; padding: 12px 16px; background: #fef9ec; border-radius: 8px; border-left: 3px solid #f59e0b; }
+  .stale-section p { font-size: 12px; color: #92400e; font-weight: 500; margin-bottom: 6px; }
+  .stale-list { font-size: 12px; color: #78350f; line-height: 1.6; }
+  .history { margin-top: 8px; }
+  .history-item { background: #f9f9f9; border: 1px solid #e5e5e5; border-radius: 8px; padding: 14px 18px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s; }
+  .history-item:hover { border-color: #1a3a5c; }
+  .history-q { font-size: 13px; font-weight: 500; color: #1a3a5c; }
+  .history-meta { font-size: 11px; color: #888; margin-top: 2px; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .section-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #999; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>DVC Institutional Memory</h1>
+    <span>312 companies · Affinity + partner notes · Real-time reasoning</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="search-card">
+    <textarea id="question" placeholder="Ask anything about DVC's deal history, pipeline, relationships, or portfolio..."></textarea>
+    <div class="search-row" style="margin-top:10px">
+      <button class="btn" onclick="handleQuery()" id="ask-btn">Ask</button>
+    </div>
+    <div class="examples">
+      <button class="example" onclick="fill('What cybersecurity companies have we tracked?')">Cybersecurity deals</button>
+      <button class="example" onclick="fill('Who is currently raising that we have been tracking?')">Currently raising</button>
+      <button class="example" onclick="fill('Which companies have gone cold or unresponsive?')">Gone cold</button>
+      <button class="example" onclick="fill('What is the current status of Secufusion?')">Secufusion status</button>
+      <button class="example" onclick="fill('Have we seen any AI infrastructure companies?')">AI infrastructure</button>
+      <button class="example" onclick="fill('Which deals from early 2024 have we not followed up on?')">Stale 2024 deals</button>
+    </div>
+  </div>
+
+  <div class="result-card" id="result-card">
+    <div class="result-meta" id="result-meta"></div>
+    <div class="answer" id="answer"></div>
+    <div class="stale-section" id="stale-section" style="display:none">
+      <p>Companies needing follow-up (6+ months inactive)</p>
+      <div class="stale-list" id="stale-list"></div>
+    </div>
+  </div>
+
+  <div id="history-section" style="display:none">
+    <div class="section-label">Recent queries</div>
+    <div class="history" id="history"></div>
+  </div>
+</div>
+
+<script>
+  const history = [];
+
+  function fill(text) {
+    document.getElementById('question').value = text;
+    document.getElementById('question').focus();
+  }
+
+  function formatErrorDetail(detail) {
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail)) return detail.map(d => d.msg || JSON.stringify(d)).join('; ');
+    return JSON.stringify(detail);
+  }
+
+  async function handleQuery() {
+    const q = document.getElementById('question').value.trim();
+    if (!q) return;
+    const btn = document.getElementById('ask-btn');
+    const resultCard = document.getElementById('result-card');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Thinking...';
+    resultCard.style.display = 'none';
+
+    try {
+      const res = await fetch('/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatErrorDetail(data.detail));
+
+      const meta = document.getElementById('result-meta');
+      meta.innerHTML = '';
+
+      if (data.category) {
+        meta.innerHTML += `<span class="badge badge-category">${data.category.replace(/_/g, ' ')}</span>`;
+      }
+      if (data.conflicts) {
+        meta.innerHTML += `<span class="badge badge-conflict">Conflict detected</span>`;
+      }
+      if (data.confidence) {
+        meta.innerHTML += `<span class="badge badge-confidence-${data.confidence}">Confidence: ${data.confidence}</span>`;
+      }
+      if (data.stale_companies && data.stale_companies.length > 0) {
+        meta.innerHTML += `<span class="badge badge-stale">${data.stale_companies.length} stale companies</span>`;
+      }
+
+      document.getElementById('answer').textContent = data.answer;
+
+      if (data.stale_companies && data.stale_companies.length > 0) {
+        document.getElementById('stale-section').style.display = 'block';
+        document.getElementById('stale-list').textContent = data.stale_companies.join(', ');
+      } else {
+        document.getElementById('stale-section').style.display = 'none';
+      }
+
+      resultCard.style.display = 'block';
+
+      history.unshift({ q, category: data.category, time: new Date().toLocaleTimeString() });
+      renderHistory();
+
+    } catch (e) {
+      document.getElementById('answer').textContent = 'Error: ' + e.message;
+      document.getElementById('result-meta').innerHTML = '';
+      resultCard.style.display = 'block';
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Ask';
+  }
+
+  function renderHistory() {
+    const section = document.getElementById('history-section');
+    const container = document.getElementById('history');
+    if (history.length === 0) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+    container.innerHTML = history.slice(0, 5).map(h => `
+      <div class="history-item" data-q="${encodeURIComponent(h.q)}">
+        <div class="history-q"></div>
+        <div class="history-meta">${(h.category || 'general').replace(/_/g, ' ')} · ${h.time}</div>
+      </div>
+    `).join('');
+    container.querySelectorAll('.history-item').forEach((el, i) => {
+      const item = history[i];
+      el.querySelector('.history-q').textContent = item.q;
+      el.onclick = () => fill(item.q);
+    });
+  }
+
+  document.getElementById('question').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleQuery();
+  });
+</script>
+</body>
+</html>

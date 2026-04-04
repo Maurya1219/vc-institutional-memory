@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+requests
+python-dotenv
+openai
+langchain
+langchain-classic
+langchain-openai
+langchain-community
+faiss-cpu
+psycopg2-binary
+sqlalchemy
+pandas
+tqdm
