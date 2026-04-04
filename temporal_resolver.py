@@ -19,7 +19,11 @@ llm = ChatOpenAI(
 
 class TemporalResolution(BaseModel):
     resolved_status: str = Field(
-        description="The current best-known status based on all available information"
+        description=(
+            "Structured answer using **Active / In Progress**, **Re-engaging**, "
+            "**Cold / Unresponsive**, **Stale (6+ months no activity)** sections "
+            "with markdown **headers** and one line per company bullet as in the system prompt"
+        )
     )
     confidence: str = Field(
         description="high, medium, or low — how confident we are this is current"
@@ -57,10 +61,25 @@ Key rules:
 1. NEWER information always supersedes OLDER information about the same fact
 2. If a company was "raising" in October but "closed round" in February, they are NOT raising
 3. If notes say "marked cold" after earlier notes said "interested", they are cold
-4. If engagement went from "meeting scheduled" to "no response for 3 weeks", flag as stale
-5. A company with only old notes (6+ months ago) and no recent activity should be flagged as stale
+4. Flag companies with no activity in 6+ months as stale
 
-Always be explicit about WHEN information was recorded and flag any gaps in recent data.""",
+FORMAT YOUR ANSWER EXACTLY LIKE THIS — use line breaks and categories:
+
+**Active / In Progress**
+- Company A: [one line status]
+- Company B: [one line status]
+
+**Re-engaging**
+- Company C: [one line status]
+
+**Cold / Unresponsive**
+- Company D: [reason in one line]
+- Company E: [reason in one line]
+
+**Stale (6+ months no activity)**
+- Company F, Company G, Company H
+
+Keep each line concise — one company, one status, one line. No run-on paragraphs.""",
         ),
         (
             "human",
@@ -154,23 +173,15 @@ def resolve_temporal(query: str, docs: list[Document]) -> dict:
         if detect_staleness(company_docs)
     ]
 
-    answer = f"{resolution.resolved_status}\n"
+    answer = f"{resolution.resolved_status}"
 
     if resolution.conflicts_detected and resolution.conflict_summary:
-        answer += f"\nConflict detected: {resolution.conflict_summary}"
-        if resolution.oldest_info:
-            answer += f"\n- Earlier: {resolution.oldest_info}"
-        if resolution.newest_info:
-            answer += f"\n- Latest: {resolution.newest_info}"
+        answer += f"\n\n⚠️ Conflict: {resolution.conflict_summary}"
 
     if stale_companies:
         answer += (
-            "\n\nNote: The following companies have no activity in 6+ months "
-            f"and may need follow-up: {', '.join(stale_companies)}"
+            f"\n\n**Needs follow-up ({len(stale_companies)} companies with 6+ months no activity)**"
         )
-
-    answer += f"\n\nRecommendation: {resolution.recommendation}"
-    answer += f"\nConfidence: {resolution.confidence}"
 
     return {
         "answer": answer,

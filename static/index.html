@@ -30,7 +30,7 @@
   .badge-confidence-high { background: #d1fae5; color: #065f46; }
   .badge-confidence-medium { background: #fef3c7; color: #92400e; }
   .badge-confidence-low { background: #fee2e2; color: #991b1b; }
-  .answer { font-size: 14px; line-height: 1.8; white-space: pre-wrap; color: #1a1a1a; }
+  .answer { font-size: 14px; line-height: 1.8; color: #1a1a1a; }
   .stale-section { margin-top: 16px; padding: 12px 16px; background: #fef9ec; border-radius: 8px; border-left: 3px solid #f59e0b; }
   .stale-section p { font-size: 12px; color: #92400e; font-weight: 500; margin-bottom: 6px; }
   .stale-list { font-size: 12px; color: #78350f; line-height: 1.6; }
@@ -132,7 +132,10 @@
         meta.innerHTML += `<span class="badge badge-stale">${data.stale_companies.length} stale companies</span>`;
       }
 
-      document.getElementById('answer').textContent = data.answer;
+      const formatted = data.answer
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
+      document.getElementById('answer').innerHTML = formatted;
 
       if (data.stale_companies && data.stale_companies.length > 0) {
         document.getElementById('stale-section').style.display = 'block';
