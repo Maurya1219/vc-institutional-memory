@@ -23,6 +23,20 @@ MASTER_LIST_ID = 237676
 embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
 
 
+def embed_with_retry(docs, embeddings, retries=3):
+    for attempt in range(retries):
+        try:
+            return FAISS.from_documents(docs, embeddings)
+        except Exception as e:
+            if attempt < retries - 1:
+                print(
+                    f"Embedding attempt {attempt + 1} failed: {e}. Retrying in 10s..."
+                )
+                time.sleep(10)
+            else:
+                raise
+
+
 def get(endpoint, params=None):
     resp = requests.get(f"{BASE_URL}/{endpoint}", auth=AUTH, params=params)
     resp.raise_for_status()
@@ -201,7 +215,7 @@ def main():
         time.sleep(0.1)
 
     print(f"\nBuilding vector store from {len(docs)} documents...")
-    vectorstore = FAISS.from_documents(docs, embeddings)
+    vectorstore = embed_with_retry(docs, embeddings)
     vectorstore.save_local("dvc_vectorstore")
     print("Vector store saved to dvc_vectorstore/")
 
