@@ -134,6 +134,7 @@ If information seems incomplete, say so clearly."""
         "temporal": "\nIMPORTANT: Pay close attention to dates. Newer information supersedes older information. If a company was raising in October but the notes show they closed in February, they are NOT currently raising. Always note when information was recorded.",
         "portfolio": "\nFocus on portfolio companies and investment status.",
         "counting": "\nCount and aggregate carefully. Be precise about numbers and time ranges.",
+        "factual": "\nAnswer only with explicit numbers or facts from the data; if missing, say it is not in records.",
         "general": "",
     }
 
@@ -146,6 +147,32 @@ def ask(query: str, verbose: bool = False) -> dict:
     if verbose:
         print(f"\nClassified as: {classification.category}")
         print(f"Time sensitive: {classification.time_sensitive}")
+
+    if classification.category == "factual":
+        context = search_deals(query)
+
+        factual_prompt = f"""You are a precise data analyst for Dallas Venture Capital.
+
+The user is asking for a specific data point: {query}
+
+Retrieved context:
+{context}
+
+Rules:
+- If the exact data point is present in the context, state it clearly with the source
+- If it is NOT in the context, say exactly: "This information is not available in our records. You may want to check the company's pitch deck or financial model directly."
+- Never estimate or approximate
+- Never pivot to related information — answer the specific question asked"""
+
+        response = llm.invoke(factual_prompt)
+        return {
+            "answer": response.content,
+            "category": "factual",
+            "time_sensitive": classification.time_sensitive,
+            "quality_score": 9,
+            "grounded": True,
+            "retried": False,
+        }
 
     if classification.time_sensitive or classification.category == "temporal":
         docs = get_vectorstore().similarity_search(query, k=20)

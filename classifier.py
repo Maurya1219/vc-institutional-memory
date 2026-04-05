@@ -22,6 +22,7 @@ class QueryClassification(BaseModel):
         "temporal",
         "portfolio",
         "counting",
+        "factual",
         "general",
     ] = Field(description="The category of the query")
     reasoning: str = Field(description="Why this category was chosen")
@@ -51,11 +52,16 @@ Classify each query into one of these categories:
   Examples: "who is currently raising", "what deals are active", "what's changed recently"
   These require checking if older information has been superseded by newer information.
 
-- portfolio: Questions about existing investments, portfolio companies, follow-ons
+- portfolio: Questions about existing investments, portfolio companies, follow-ons (not raw financial metrics)
   Examples: "how are our portfolio companies doing", "which portfolio company is in this space"
+  If the user asks for revenue, ARR, valuation, funding amount, or headcount, use factual instead.
 
 - counting: Analytical questions requiring aggregation or counting
   Examples: "how many deals did we see in 2024", "what sectors do we invest in most", "average check size"
+
+- factual: Specific data points about a company — revenue, ARR, funding amount, valuation, headcount
+  Examples: "what is Arnica's revenue", "how much has X raised", "what is Y's valuation"
+  These require precise data. If not available, say so clearly — never estimate.
 
 - general: Anything else, general questions about the firm
 
