@@ -131,6 +131,17 @@
       if (data.stale_companies && data.stale_companies.length > 0) {
         meta.innerHTML += `<span class="badge badge-stale">${data.stale_companies.length} stale companies</span>`;
       }
+      if (typeof data.quality_score === 'number') {
+        const color = data.quality_score >= 8 ? 'badge-confidence-high' :
+          data.quality_score >= 6 ? 'badge-confidence-medium' : 'badge-confidence-low';
+        meta.innerHTML += `<span class="badge ${color}">Quality: ${data.quality_score}/10</span>`;
+      }
+      if (data.retried) {
+        meta.innerHTML += `<span class="badge badge-conflict">Retried — low quality detected</span>`;
+      }
+      if (data.grounded === false) {
+        meta.innerHTML += `<span class="badge badge-stale">Hallucination risk</span>`;
+      }
 
       const formatted = data.answer
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')

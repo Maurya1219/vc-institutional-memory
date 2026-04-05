@@ -10,6 +10,7 @@ from langchain_core.tools import Tool
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 from classifier import classify_query
+from critic import critique_answer
 from query_expander import expand_query
 from reranker import rerank
 from temporal_resolver import resolve_temporal
@@ -144,7 +145,6 @@ def ask(query: str, verbose: bool = False) -> dict:
 
     if verbose:
         print(f"\nClassified as: {classification.category}")
-        print(f"Reasoning: {classification.reasoning}")
         print(f"Time sensitive: {classification.time_sensitive}")
 
     if classification.time_sensitive or classification.category == "temporal":
@@ -169,16 +169,19 @@ def ask(query: str, verbose: bool = False) -> dict:
     else:
         retrieval_fn = search_deals
 
+    context = retrieval_fn(query)
+
     tools = [
         Tool(
             name="search_deal_history",
             func=retrieval_fn,
-            description="Search DVC's complete deal history, pipeline companies, and partner notes.",
+            description=(
+                "Search DVC's complete deal history, pipeline, contacts, and partner notes."
+            ),
         )
     ]
 
     system_prompt = build_system_prompt(classification)
-
     prompt = ChatPromptTemplate.from_messages(
         [
             ("system", system_prompt),
@@ -191,13 +194,69 @@ def ask(query: str, verbose: bool = False) -> dict:
     executor = AgentExecutor(
         agent=agent, tools=tools, verbose=False, max_iterations=3
     )
-
     result = executor.invoke({"input": query})
+    answer = result["output"]
+
+    critique = critique_answer(query, context, answer)
+
+    if verbose:
+        print(f"\nCritique: {critique.critique}")
+        print(f"Quality: {critique.quality_score}/10")
+        print(f"Grounded: {critique.is_grounded}")
+        print(f"Hallucination: {critique.hallucination_detected}")
+
+    should_retry = (
+        critique.quality_score < 7
+        or critique.hallucination_detected
+        or not critique.is_complete
+    ) and bool(critique.refined_query and critique.refined_query.strip())
+
+    if should_retry:
+        refined = critique.refined_query.strip()
+
+        if verbose:
+            print(f"\nRetrying with refined query: {refined}")
+
+        context2 = retrieval_fn(refined)
+
+        def _tool_with_refined(_q: str, rq: str = refined) -> str:
+            return retrieval_fn(rq)
+
+        tools2 = [
+            Tool(
+                name="search_deal_history",
+                func=_tool_with_refined,
+                description="Search with refined query.",
+            )
+        ]
+
+        agent2 = create_openai_functions_agent(llm=llm, tools=tools2, prompt=prompt)
+        executor2 = AgentExecutor(
+            agent=agent2, tools=tools2, verbose=False, max_iterations=3
+        )
+        result2 = executor2.invoke({"input": query})
+        answer = result2["output"]
+
+        critique2 = critique_answer(query, context2, answer)
+        if verbose:
+            print(f"Retry quality: {critique2.quality_score}/10")
+
+        return {
+            "answer": answer,
+            "category": classification.category,
+            "time_sensitive": classification.time_sensitive,
+            "quality_score": critique2.quality_score,
+            "grounded": critique2.is_grounded,
+            "retried": True,
+        }
 
     return {
-        "answer": result["output"],
+        "answer": answer,
         "category": classification.category,
         "time_sensitive": classification.time_sensitive,
+        "quality_score": critique.quality_score,
+        "grounded": critique.is_grounded,
+        "retried": False,
     }
 
 
