@@ -3,394 +3,421 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DVC Institutional Memory</title>
+<title>DVC Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; }
-  .header { background: #1a3a5c; padding: 20px 32px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; width: 100%; box-sizing: border-box; }
-  .header h1 { color: white; font-size: 18px; font-weight: 600; }
-  .header span { color: #7aafd4; font-size: 13px; }
-  .container { max-width: 860px; margin: 0 auto; padding: 32px 20px; }
-  .search-card { background: white; border: 1px solid #e5e5e5; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
-  .search-row { display: flex; gap: 10px; }
-  textarea { flex: 1; border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px; font-size: 14px; font-family: inherit; resize: none; height: 72px; outline: none; transition: border-color 0.2s; }
-  textarea:focus { border-color: #1a3a5c; }
-  .btn { background: #1a3a5c; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; cursor: pointer; white-space: nowrap; align-self: flex-end; transition: opacity 0.2s; }
-  .btn:hover { opacity: 0.85; }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .examples { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 6px; }
-  .example { background: #f0f4f8; border: none; border-radius: 99px; padding: 5px 12px; font-size: 12px; color: #1a3a5c; cursor: pointer; transition: background 0.15s; }
-  .example:hover { background: #dce8f5; }
-  .result-card { background: white; border: 1px solid #e5e5e5; border-radius: 12px; padding: 24px; margin-bottom: 16px; display: none; }
-  .result-meta { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
-  .badge { font-size: 11px; padding: 3px 10px; border-radius: 99px; font-weight: 500; }
-  .badge-category { background: #eef2ff; color: #4338ca; }
-  .badge-conflict { background: #fef3c7; color: #92400e; }
-  .badge-stale { background: #fee2e2; color: #991b1b; }
-  .badge-confidence-high { background: #d1fae5; color: #065f46; }
-  .badge-confidence-medium { background: #fef3c7; color: #92400e; }
-  .badge-confidence-low { background: #fee2e2; color: #991b1b; }
-  .answer { font-size: 14px; line-height: 1.8; color: #1a1a1a; }
-  .stale-section { margin-top: 16px; padding: 12px 16px; background: #fef9ec; border-radius: 8px; border-left: 3px solid #f59e0b; }
-  .stale-section p { font-size: 12px; color: #92400e; font-weight: 500; margin-bottom: 6px; }
-  .stale-list { font-size: 12px; color: #78350f; line-height: 1.6; }
-  .history { margin-top: 8px; }
-  .history-item { background: #f9f9f9; border: 1px solid #e5e5e5; border-radius: 8px; padding: 14px 18px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s; }
-  .history-item:hover { border-color: #1a3a5c; }
-  .history-q { font-size: 13px; font-weight: 500; color: #1a3a5c; }
-  .history-meta { font-size: 11px; color: #888; margin-top: 2px; }
-  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .section-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #999; margin-bottom: 10px; }
-  .search-card h2 { font-size: 16px; font-weight: 600; margin-bottom: 4px; color: #1a1a1a; }
-  .answer-box { display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid #eee; }
-  .tool-row input[type="text"] { border: 1px solid #e5e5e5; border-radius: 8px; padding: 10px 12px; font-size: 14px; outline: none; font-family: inherit; }
-  .tool-row input[type="text"]:focus { border-color: #1a3a5c; }
-  .tool-textarea { width: 100%; border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px; font-size: 14px; font-family: inherit; min-height: 80px; height: auto; resize: vertical; outline: none; }
-  .tool-textarea:focus { border-color: #1a3a5c; }
+:root {
+  --ink: #0d0d0d;
+  --paper: #f5f2ec;
+  --cream: #ede9e0;
+  --rule: #d4cfc4;
+  --gold: #b8935a;
+  --gold-light: #e8d5b0;
+  --muted: #6b6459;
+  --red: #c0392b;
+  --green: #1a6b3c;
+  --blue: #1a3a6b;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Instrument Sans', sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; }
+.masthead { border-bottom: 2px solid var(--ink); padding: 0 40px; display: flex; align-items: stretch; }
+.masthead-left { padding: 20px 32px 20px 0; border-right: 1px solid var(--rule); margin-right: 32px; }
+.masthead-title { font-family: 'DM Serif Display', serif; font-size: 28px; letter-spacing: -0.5px; line-height: 1; }
+.masthead-sub { font-size: 11px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 4px; }
+.masthead-stats { display: flex; align-items: center; gap: 24px; flex: 1; padding: 20px 0; }
+.stat { display: flex; flex-direction: column; gap: 2px; }
+.stat-num { font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 500; }
+.stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+.stat-divider { width: 1px; height: 32px; background: var(--rule); }
+.masthead-actions { display: flex; align-items: center; gap: 10px; padding: 20px 0; margin-left: auto; }
+.btn-ghost { background: none; border: 1px solid var(--rule); color: var(--ink); padding: 7px 14px; font-size: 12px; font-family: 'Instrument Sans', sans-serif; cursor: pointer; transition: all 0.15s; }
+.btn-ghost:hover { background: var(--cream); border-color: var(--ink); }
+.btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
+.sync-status { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; }
+.layout { display: grid; grid-template-columns: 1fr 360px; min-height: calc(100vh - 73px); }
+.main-col { border-right: 1px solid var(--rule); }
+.side-col { min-width: 0; }
+.section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); font-weight: 500; }
+.query-area { padding: 32px; border-bottom: 1px solid var(--rule); }
+.query-input { width: 100%; background: var(--cream); border: 1px solid var(--rule); border-bottom: 2px solid var(--ink); padding: 16px; font-size: 16px; font-family: 'Instrument Sans', sans-serif; color: var(--ink); resize: none; min-height: 80px; outline: none; transition: border-color 0.15s; line-height: 1.5; }
+.query-input::placeholder { color: var(--muted); }
+.query-input:focus { border-bottom-color: var(--gold); }
+.query-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+.btn-primary { background: var(--ink); color: var(--paper); border: none; padding: 10px 24px; font-size: 13px; font-family: 'Instrument Sans', sans-serif; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
+.btn-primary:hover { opacity: 0.8; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.shortcuts { display: flex; gap: 6px; flex-wrap: wrap; }
+.shortcut { background: none; border: 1px solid var(--rule); color: var(--muted); padding: 4px 10px; font-size: 11px; font-family: 'Instrument Sans', sans-serif; cursor: pointer; transition: all 0.15s; }
+.shortcut:hover { border-color: var(--ink); color: var(--ink); }
+.result-area { padding: 32px; border-bottom: 1px solid var(--rule); display: none; }
+.result-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
+.badge { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; font-weight: 500; }
+.badge-category { background: var(--gold-light); color: #7a5c2a; }
+.badge-quality-high { background: #d4edda; color: var(--green); }
+.badge-quality-mid { background: #fff3cd; color: #7a5a00; }
+.badge-quality-low { background: #f8d7da; color: var(--red); }
+.badge-conflict { background: #fff3cd; color: #7a5a00; }
+.badge-stale { background: #f8d7da; color: var(--red); }
+.result-text { font-size: 14px; line-height: 1.85; color: var(--ink); }
+.result-text strong { font-weight: 600; }
+.result-text h3 { font-family: 'DM Serif Display', serif; font-size: 16px; margin: 20px 0 8px; font-weight: 400; }
+.result-text h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin: 16px 0 6px; }
+.stale-box { margin-top: 20px; padding: 14px 16px; background: #fdf8f0; border-left: 3px solid var(--gold); }
+.stale-box-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--gold); font-weight: 600; margin-bottom: 6px; }
+.stale-box-text { font-size: 12px; color: var(--muted); line-height: 1.6; }
+.tool-card { padding: 24px; border-bottom: 1px solid var(--rule); }
+.tool-title { font-family: 'DM Serif Display', serif; font-size: 15px; margin-bottom: 4px; font-weight: 400; }
+.tool-desc { font-size: 11px; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+.tool-input { width: 100%; background: var(--cream); border: 1px solid var(--rule); border-bottom: 1.5px solid var(--ink); padding: 9px 12px; font-size: 13px; font-family: 'Instrument Sans', sans-serif; color: var(--ink); outline: none; margin-bottom: 8px; transition: border-color 0.15s; }
+.tool-input:focus { border-bottom-color: var(--gold); }
+.tool-input::placeholder { color: var(--muted); }
+.tool-textarea { width: 100%; background: var(--cream); border: 1px solid var(--rule); border-bottom: 1.5px solid var(--ink); padding: 9px 12px; font-size: 13px; font-family: 'Instrument Sans', sans-serif; color: var(--ink); outline: none; resize: none; min-height: 64px; margin-bottom: 8px; line-height: 1.5; transition: border-color 0.15s; }
+.tool-textarea:focus { border-bottom-color: var(--gold); }
+.tool-row { display: flex; gap: 6px; margin-bottom: 8px; }
+.tool-row .tool-input { margin-bottom: 0; }
+.btn-tool { background: none; border: 1px solid var(--ink); color: var(--ink); padding: 7px 16px; font-size: 12px; font-family: 'Instrument Sans', sans-serif; cursor: pointer; font-weight: 500; transition: all 0.15s; }
+.btn-tool:hover { background: var(--ink); color: var(--paper); }
+.btn-tool:disabled { opacity: 0.4; cursor: not-allowed; }
+.tool-result { margin-top: 14px; padding: 14px; background: var(--cream); border-left: 2px solid var(--gold); font-size: 12px; line-height: 1.7; color: var(--ink); display: none; }
+.tool-result strong { font-weight: 600; }
+.tool-result h3 { font-family: 'DM Serif Display', serif; font-size: 14px; margin: 12px 0 6px; font-weight: 400; }
+.tool-result h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin: 10px 0 4px; }
+.digest-section { padding: 20px 24px; border-bottom: 1px solid var(--rule); }
+.digest-content { font-size: 12px; line-height: 1.7; color: var(--muted); margin-top: 12px; }
+.history-section { padding: 20px 24px; }
+.history-item { padding: 10px 0; border-bottom: 1px solid var(--rule); cursor: pointer; }
+.history-item:last-child { border-bottom: none; }
+.history-item:hover .history-q { color: var(--gold); }
+.history-q { font-size: 12px; color: var(--ink); line-height: 1.4; transition: color 0.15s; }
+.history-meta { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 3px; }
+.spinner { display: inline-block; width: 12px; height: 12px; border: 1.5px solid var(--rule); border-top-color: var(--ink); border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
+.spinner-gold { border-color: var(--gold-light); border-top-color: var(--gold); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.score-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.score-badge { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; font-weight: 600; }
+.rec-pass { background: #f8d7da; color: var(--red); }
+.rec-watch { background: #fff3cd; color: #7a5a00; }
+.rec-pursue { background: #d4edda; color: var(--green); }
+.rec-priority { background: var(--gold-light); color: #7a5c2a; }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div>
-    <h1>DVC Institutional Memory</h1>
-    <span>6,007 records · US Pipeline · India Pipeline · Contacts · Interactions · Real-time reasoning</span>
+<header class="masthead">
+  <div class="masthead-left">
+    <div class="masthead-title">DVC Intelligence</div>
+    <div class="masthead-sub">Institutional Memory Engine</div>
   </div>
-  <div style="margin-left:auto;display:flex;align-items:center;gap:12px">
-    <span id="sync-status" style="font-size:12px;color:#7aafd4"></span>
-    <button type="button" onclick="showDigest()" id="digest-btn" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer">Weekly Digest</button>
-    <button type="button" onclick="triggerSync()" id="sync-btn" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer">Sync Affinity</button>
+  <div class="masthead-stats">
+    <div class="stat">
+      <span class="stat-num">6,007</span>
+      <span class="stat-label">Records</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <span class="stat-num">5</span>
+      <span class="stat-label">Data sources</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <span class="stat-num">4,677</span>
+      <span class="stat-label">Graph edges</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <span id="sync-stat" class="stat-num" style="font-size:12px;color:var(--muted)">—</span>
+      <span class="stat-label">Last sync</span>
+    </div>
   </div>
-</div>
+  <div class="masthead-actions">
+    <span class="sync-status" id="sync-status"></span>
+    <button type="button" class="btn-ghost" onclick="triggerSync()" id="sync-btn">Sync Affinity</button>
+    <button type="button" class="btn-ghost" onclick="showDigest()" id="digest-btn">Weekly Digest</button>
+  </div>
+</header>
 
-<div class="container">
-  <div class="search-card">
-    <textarea id="question" placeholder="Ask anything about DVC's deal history, pipeline, relationships, or portfolio..."></textarea>
-    <div class="search-row" style="margin-top:10px">
-      <button class="btn" onclick="handleQuery()" id="ask-btn">Ask</button>
-    </div>
-    <div class="examples">
-      <button class="example" onclick="fill('What cybersecurity companies have we tracked?')">Cybersecurity deals</button>
-      <button class="example" onclick="fill('Who is currently raising that we have been tracking?')">Currently raising</button>
-      <button class="example" onclick="fill('Which companies have gone cold or unresponsive?')">Gone cold</button>
-      <button class="example" onclick="fill('What is the current status of Secufusion?')">Secufusion status</button>
-      <button class="example" onclick="fill('Have we seen any AI infrastructure companies?')">AI infrastructure</button>
-      <button class="example" onclick="fill('Which deals from early 2024 have we not followed up on?')">Stale 2024 deals</button>
-    </div>
-  </div>
-
-  <div class="search-card">
-    <h2>Meeting prep</h2>
-    <p style="font-size:13px;color:#666;margin-bottom:16px">Get a full briefing before any meeting — relationship history, partner notes, red flags, and talking points.</p>
-    <div class="tool-row" style="display:flex;gap:10px;align-items:stretch">
-      <input type="text" id="prep-company" placeholder="Company name e.g. Arnica, Secufusion..." style="flex:1">
-      <button type="button" class="btn" onclick="handleMeetingPrep()" style="align-self:stretch">Prep</button>
-    </div>
-    <div class="answer-box" id="prep-box">
-      <div class="answer" id="prep-text"></div>
-    </div>
-  </div>
-
-  <div class="search-card">
-    <h2>Score a deal</h2>
-    <p style="font-size:13px;color:#666;margin-bottom:16px">Evaluate a new company against DVC's historical thesis and pipeline patterns.</p>
-    <div style="display:flex;flex-direction:column;gap:10px">
-      <input type="text" id="score-company" placeholder="Company name" style="width:100%;border:1px solid #e5e5e5;border-radius:8px;padding:10px 12px;font-size:14px;outline:none;font-family:inherit">
-      <textarea id="score-description" class="tool-textarea" placeholder="What does the company do? Include sector, stage, traction, team background, and ask."></textarea>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <input type="text" id="score-sector" placeholder="Sector (e.g. B2B SaaS, Cybersecurity)" style="flex:1;min-width:140px;border:1px solid #e5e5e5;border-radius:8px;padding:10px 12px;font-size:14px;outline:none;font-family:inherit">
-        <input type="text" id="score-stage" placeholder="Stage (e.g. Seed, Series A)" style="flex:1;min-width:120px;border:1px solid #e5e5e5;border-radius:8px;padding:10px 12px;font-size:14px;outline:none;font-family:inherit">
-        <input type="text" id="score-ask" placeholder="Ask (e.g. $2M)" style="flex:1;min-width:100px;border:1px solid #e5e5e5;border-radius:8px;padding:10px 12px;font-size:14px;outline:none;font-family:inherit">
+<div class="layout">
+  <div class="main-col">
+    <div class="query-area">
+      <div class="section-label" style="margin-bottom:16px">Intelligence query</div>
+      <textarea class="query-input" id="question" placeholder="Ask anything — deals, relationships, pipeline, patterns, or current status..."></textarea>
+      <div class="query-footer">
+        <div class="shortcuts">
+          <button type="button" class="shortcut" onclick="fill('Which companies have gone cold or unresponsive?')">Gone cold</button>
+          <button type="button" class="shortcut" onclick="fill('Who is currently raising that we have been tracking?')">Currently raising</button>
+          <button type="button" class="shortcut" onclick="fill('What cybersecurity companies have we tracked?')">Cybersecurity</button>
+          <button type="button" class="shortcut" onclick="fill('What sectors do we invest in most?')">Sector breakdown</button>
+          <button type="button" class="shortcut" onclick="fill('Who are our most connected contacts?')">Network map</button>
+        </div>
+        <button type="button" class="btn-primary" onclick="handleQuery()" id="ask-btn">Ask →</button>
       </div>
-      <button type="button" class="btn" onclick="handleScoreDeal()" style="align-self:flex-start">Score Deal</button>
     </div>
-    <div class="answer-box" id="score-box">
-      <div id="score-badges" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"></div>
-      <div class="answer" id="score-text"></div>
+
+    <div class="result-area" id="result-area">
+      <div class="result-meta" id="result-meta"></div>
+      <div class="result-text" id="result-text"></div>
+      <div class="stale-box" id="stale-box" style="display:none">
+        <div class="stale-box-label">Needs follow-up</div>
+        <div class="stale-box-text" id="stale-list"></div>
+      </div>
+    </div>
+
+    <div class="tool-card" style="padding:32px">
+      <div class="section-label" style="margin-bottom:16px">Meeting prep</div>
+      <div class="tool-title">Partner briefing</div>
+      <div class="tool-desc">Full intelligence brief before any meeting — relationship history, partner notes, red flags, and talking points.</div>
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <input class="tool-input" id="prep-company" placeholder="Company name" style="margin-bottom:0;flex:1">
+        <button type="button" class="btn-tool" onclick="handleMeetingPrep()" id="prep-btn">Brief →</button>
+      </div>
+      <div class="tool-result" id="prep-result"></div>
     </div>
   </div>
 
-  <div class="result-card" id="result-card">
-    <div class="result-meta" id="result-meta"></div>
-    <div class="answer" id="answer"></div>
-    <div class="stale-section" id="stale-section" style="display:none">
-      <p>Companies needing follow-up (6+ months inactive)</p>
-      <div class="stale-list" id="stale-list"></div>
+  <div class="side-col">
+    <div class="tool-card">
+      <div class="section-label" style="margin-bottom:16px">Deal scoring</div>
+      <div class="tool-title">Evaluate a new deal</div>
+      <div class="tool-desc">Score against DVC's historical thesis and pipeline patterns.</div>
+      <input class="tool-input" id="score-company" placeholder="Company name">
+      <textarea class="tool-textarea" id="score-description" placeholder="Sector, stage, traction, team, ask..."></textarea>
+      <div class="tool-row">
+        <input class="tool-input" id="score-sector" placeholder="Sector">
+        <input class="tool-input" id="score-stage" placeholder="Stage">
+        <input class="tool-input" id="score-ask" placeholder="Ask">
+      </div>
+      <button type="button" class="btn-tool" onclick="handleScoreDeal()" id="score-btn">Score deal →</button>
+      <div class="score-row" id="score-badges" style="margin-top:12px"></div>
+      <div class="tool-result" id="score-result"></div>
     </div>
-  </div>
 
-  <div id="digest-card" class="result-card" style="display:none">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <strong style="font-size:15px">Weekly Pipeline Digest</strong>
-      <button type="button" onclick="regenerateDigest()" style="font-size:12px;background:none;border:1px solid #e5e5e5;border-radius:6px;padding:4px 10px;cursor:pointer">Regenerate</button>
+    <div class="digest-section">
+      <div class="section-label" style="margin-bottom:12px">Weekly digest</div>
+      <div class="digest-content" id="digest-content">Click "Weekly Digest" above to load this week's pipeline intelligence.</div>
+      <button type="button" class="btn-ghost" onclick="regenerateDigest()" id="regen-btn" style="margin-top:12px;font-size:11px">Regenerate</button>
     </div>
-    <div class="answer" id="digest-text"></div>
-  </div>
 
-  <div id="history-section" style="display:none">
-    <div class="section-label">Recent queries</div>
-    <div class="history" id="history"></div>
+    <div class="history-section">
+      <div class="section-label" style="margin-bottom:12px">Recent queries</div>
+      <div id="history-list"><div style="font-size:12px;color:var(--muted)">No queries yet.</div></div>
+    </div>
   </div>
 </div>
 
 <script>
-  const history = [];
+const history = [];
 
-  async function triggerSync() {
-    const btn = document.getElementById('sync-btn');
-    const status = document.getElementById('sync-status');
-    btn.disabled = true;
-    btn.textContent = 'Syncing...';
-    status.textContent = '';
-    try {
-      const res = await fetch('/sync', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || res.statusText);
-      const total = (data.results || []).reduce((a, r) => a + r.added + r.modified, 0);
-      status.textContent = `Last sync: just now · ${total} changes`;
-      btn.textContent = 'Sync Affinity';
-    } catch (e) {
-      status.textContent = 'Sync failed';
-      btn.textContent = 'Sync Affinity';
-    }
-    btn.disabled = false;
-  }
+function fill(text) {
+  document.getElementById('question').value = text;
+  document.getElementById('question').focus();
+}
 
-  async function loadSyncStatus() {
-    try {
-      const res = await fetch('/sync-status');
-      const data = await res.json();
-      if (data.last_sync) {
-        const date = new Date(data.last_sync).toLocaleDateString();
-        const added = data.last_result?.total_added ?? 0;
-        const modified = data.last_result?.total_modified ?? 0;
-        document.getElementById('sync-status').textContent =
-          `Last sync: ${date} · ${added} added, ${modified} modified`;
-      }
-    } catch (e) {}
-  }
+function formatErrorDetail(detail) {
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) return detail.map(d => d.msg || JSON.stringify(d)).join('; ');
+  return JSON.stringify(detail);
+}
 
-  loadSyncStatus();
+function formatText(text) {
+  const s = typeof text === 'string' ? text : '';
+  return s
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/## (.*?)(\n|$)/g, '<h3>$1</h3>')
+    .replace(/### (.*?)(\n|$)/g, '<h4>$1</h4>')
+    .replace(/\n/g, '<br>');
+}
 
-  async function handleMeetingPrep() {
-    const company = document.getElementById('prep-company').value.trim();
-    if (!company) return;
-    const box = document.getElementById('prep-box');
-    const text = document.getElementById('prep-text');
-    box.style.display = 'block';
-    text.textContent = 'Preparing brief for ' + company + '... (15-20 seconds)';
-    try {
-      const res = await fetch('/meeting-prep', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ company })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(formatErrorDetail(data.detail));
-      const formatted = (data.brief || '')
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/## (.*)/g, '<h3 style="margin:16px 0 6px;font-size:15px;color:#1a3a5c">$1</h3>')
-        .replace(/### (.*)/g, '<h4 style="margin:10px 0 4px;font-size:13px;font-weight:600;color:#555">$1</h4>')
-        .replace(/\n/g, '<br>');
-      text.innerHTML = formatted;
-    } catch (e) {
-      text.textContent = 'Error: ' + e.message;
-    }
-  }
-
-  async function handleScoreDeal() {
-    const company = document.getElementById('score-company').value.trim();
-    const description = document.getElementById('score-description').value.trim();
-    if (!company || !description) return;
-    const box = document.getElementById('score-box');
-    const text = document.getElementById('score-text');
-    const badges = document.getElementById('score-badges');
-    box.style.display = 'block';
-    text.textContent = 'Scoring ' + company + '... (15-20 seconds)';
-    badges.innerHTML = '';
-    try {
-      const res = await fetch('/score-deal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          company,
-          description,
-          sector: document.getElementById('score-sector').value,
-          stage: document.getElementById('score-stage').value,
-          ask: document.getElementById('score-ask').value
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(formatErrorDetail(data.detail));
-      const score = data.score;
-      const recColor = {
-        'Pass': 'badge-stale',
-        'Watch': 'badge-conflict',
-        'Pursue': 'badge-confidence-high',
-        'Priority': 'badge-confidence-high'
-      }[score.recommendation] || 'badge-category';
-      badges.innerHTML = `
-        <span class="badge ${recColor}">${score.recommendation}</span>
-        <span class="badge badge-category">Overall: ${score.overall_score}/10</span>
-        <span class="badge badge-confidence-${score.overall_score >= 7 ? 'high' : score.overall_score >= 5 ? 'medium' : 'low'}">
-          Thesis fit: ${score.thesis_fit}/10
-        </span>
-      `;
-      const formatted = (data.formatted || '')
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/## (.*)/g, '<h3 style="margin:16px 0 6px;font-size:15px;color:#1a3a5c">$1</h3>')
-        .replace(/### (.*)/g, '<h4 style="margin:10px 0 4px;font-size:13px;font-weight:600;color:#555">$1</h4>')
-        .replace(/\|/g, ' | ')
-        .replace(/\n/g, '<br>');
-      text.innerHTML = formatted;
-    } catch (e) {
-      text.textContent = 'Error: ' + e.message;
-    }
-  }
-
-  async function showDigest() {
-    const card = document.getElementById('digest-card');
-    const text = document.getElementById('digest-text');
-    card.style.display = 'block';
-    text.textContent = 'Loading digest...';
-    try {
-      const res = await fetch('/digest');
-      const data = await res.json();
-      const raw = typeof data.digest === 'string' ? data.digest : '';
-      const formatted = raw
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/## (.*)/g, '<h3 style="margin:16px 0 8px;font-size:15px">$1</h3>')
-        .replace(/### (.*)/g, '<h4 style="margin:12px 0 6px;font-size:13px;color:#555">$1</h4>')
-        .replace(/\n/g, '<br>');
-      text.innerHTML = formatted;
-    } catch (e) {
-      text.textContent = 'Failed to load digest: ' + e.message;
-    }
-  }
-
-  async function regenerateDigest() {
-    const text = document.getElementById('digest-text');
-    text.textContent = 'Generating fresh digest... (takes ~30 seconds)';
-    try {
-      const res = await fetch('/digest/generate', { method: 'POST' });
-      const data = await res.json();
-      const raw = typeof data.digest === 'string' ? data.digest : '';
-      const formatted = raw
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/## (.*)/g, '<h3 style="margin:16px 0 8px;font-size:15px">$1</h3>')
-        .replace(/### (.*)/g, '<h4 style="margin:12px 0 6px;font-size:13px;color:#555">$1</h4>')
-        .replace(/\n/g, '<br>');
-      text.innerHTML = formatted;
-    } catch (e) {
-      text.textContent = 'Failed: ' + e.message;
-    }
-  }
-
-  function fill(text) {
-    document.getElementById('question').value = text;
-    document.getElementById('question').focus();
-  }
-
-  function formatErrorDetail(detail) {
-    if (typeof detail === 'string') return detail;
-    if (Array.isArray(detail)) return detail.map(d => d.msg || JSON.stringify(d)).join('; ');
-    return JSON.stringify(detail);
-  }
-
-  async function handleQuery() {
-    const q = document.getElementById('question').value.trim();
-    if (!q) return;
-    const btn = document.getElementById('ask-btn');
-    const resultCard = document.getElementById('result-card');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>Thinking...';
-    resultCard.style.display = 'none';
-
-    try {
-      const res = await fetch('/query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: q })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(formatErrorDetail(data.detail));
-
-      const meta = document.getElementById('result-meta');
-      meta.innerHTML = '';
-
-      if (data.category) {
-        meta.innerHTML += `<span class="badge badge-category">${data.category.replace(/_/g, ' ')}</span>`;
-      }
-      if (data.conflicts) {
-        meta.innerHTML += `<span class="badge badge-conflict">Conflict detected</span>`;
-      }
-      if (data.confidence) {
-        meta.innerHTML += `<span class="badge badge-confidence-${data.confidence}">Confidence: ${data.confidence}</span>`;
-      }
-      if (data.stale_companies && data.stale_companies.length > 0) {
-        meta.innerHTML += `<span class="badge badge-stale">${data.stale_companies.length} stale companies</span>`;
-      }
-      if (typeof data.quality_score === 'number') {
-        const color = data.quality_score >= 8 ? 'badge-confidence-high' :
-          data.quality_score >= 6 ? 'badge-confidence-medium' : 'badge-confidence-low';
-        meta.innerHTML += `<span class="badge ${color}">Quality: ${data.quality_score}/10</span>`;
-      }
-      if (data.retried) {
-        meta.innerHTML += `<span class="badge badge-conflict">Retried — low quality detected</span>`;
-      }
-      if (data.grounded === false) {
-        meta.innerHTML += `<span class="badge badge-stale">Hallucination risk</span>`;
-      }
-
-      const formatted = data.answer
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\n/g, '<br>');
-      document.getElementById('answer').innerHTML = formatted;
-
-      if (data.stale_companies && data.stale_companies.length > 0) {
-        document.getElementById('stale-section').style.display = 'block';
-        document.getElementById('stale-list').textContent = data.stale_companies.join(', ');
-      } else {
-        document.getElementById('stale-section').style.display = 'none';
-      }
-
-      resultCard.style.display = 'block';
-
-      history.unshift({ q, category: data.category, time: new Date().toLocaleTimeString() });
-      renderHistory();
-
-    } catch (e) {
-      document.getElementById('answer').textContent = 'Error: ' + e.message;
-      document.getElementById('result-meta').innerHTML = '';
-      resultCard.style.display = 'block';
-    }
-
-    btn.disabled = false;
-    btn.textContent = 'Ask';
-  }
-
-  function renderHistory() {
-    const section = document.getElementById('history-section');
-    const container = document.getElementById('history');
-    if (history.length === 0) { section.style.display = 'none'; return; }
-    section.style.display = 'block';
-    container.innerHTML = history.slice(0, 5).map(h => `
-      <div class="history-item" data-q="${encodeURIComponent(h.q)}">
-        <div class="history-q"></div>
-        <div class="history-meta">${(h.category || 'general').replace(/_/g, ' ')} · ${h.time}</div>
-      </div>
-    `).join('');
-    container.querySelectorAll('.history-item').forEach((el, i) => {
-      const item = history[i];
-      el.querySelector('.history-q').textContent = item.q;
-      el.onclick = () => fill(item.q);
+async function handleQuery() {
+  const q = document.getElementById('question').value.trim();
+  if (!q) return;
+  const btn = document.getElementById('ask-btn');
+  const area = document.getElementById('result-area');
+  const meta = document.getElementById('result-meta');
+  const text = document.getElementById('result-text');
+  const staleBox = document.getElementById('stale-box');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Thinking';
+  area.style.display = 'block';
+  text.innerHTML = '';
+  meta.innerHTML = '';
+  staleBox.style.display = 'none';
+  try {
+    const res = await fetch('/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q })
     });
+    const data = await res.json();
+    if (!res.ok) throw new Error(formatErrorDetail(data.detail));
+    if (data.category) meta.innerHTML += `<span class="badge badge-category">${data.category.replace(/_/g,' ')}</span>`;
+    if (typeof data.quality_score === 'number') {
+      const cls = data.quality_score >= 8 ? 'badge-quality-high' : data.quality_score >= 6 ? 'badge-quality-mid' : 'badge-quality-low';
+      meta.innerHTML += `<span class="badge ${cls}">${data.quality_score}/10</span>`;
+    }
+    if (data.conflicts) meta.innerHTML += `<span class="badge badge-conflict">Conflict detected</span>`;
+    if (data.stale_companies?.length) {
+      meta.innerHTML += `<span class="badge badge-stale">${data.stale_companies.length} stale</span>`;
+      document.getElementById('stale-list').textContent = data.stale_companies.join(', ');
+      staleBox.style.display = 'block';
+    }
+    text.innerHTML = formatText(data.answer);
+    history.unshift({ q, category: data.category, time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) });
+    renderHistory();
+  } catch(e) {
+    text.textContent = 'Error: ' + e.message;
   }
+  btn.disabled = false;
+  btn.textContent = 'Ask →';
+}
 
-  document.getElementById('question').addEventListener('keydown', e => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleQuery();
+async function handleMeetingPrep() {
+  const company = document.getElementById('prep-company').value.trim();
+  if (!company) return;
+  const btn = document.getElementById('prep-btn');
+  const result = document.getElementById('prep-result');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Preparing';
+  result.style.display = 'block';
+  result.innerHTML = `<span class="spinner spinner-gold"></span>Pulling intelligence on ${company}...`;
+  try {
+    const res = await fetch('/meeting-prep', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ company })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(formatErrorDetail(data.detail));
+    result.innerHTML = formatText(data.brief);
+  } catch(e) {
+    result.textContent = 'Error: ' + e.message;
+  }
+  btn.disabled = false;
+  btn.textContent = 'Brief →';
+}
+
+async function handleScoreDeal() {
+  const company = document.getElementById('score-company').value.trim();
+  const description = document.getElementById('score-description').value.trim();
+  if (!company || !description) return;
+  const btn = document.getElementById('score-btn');
+  const result = document.getElementById('score-result');
+  const badges = document.getElementById('score-badges');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Scoring';
+  result.style.display = 'block';
+  badges.innerHTML = '';
+  result.innerHTML = `<span class="spinner spinner-gold"></span>Evaluating ${company}...`;
+  try {
+    const res = await fetch('/score-deal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        company, description,
+        sector: document.getElementById('score-sector').value,
+        stage: document.getElementById('score-stage').value,
+        ask: document.getElementById('score-ask').value
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(formatErrorDetail(data.detail));
+    const score = data.score;
+    const recClass = {Pass:'rec-pass',Watch:'rec-watch',Pursue:'rec-pursue',Priority:'rec-priority'}[score.recommendation]||'rec-watch';
+    badges.innerHTML = `
+      <span class="score-badge ${recClass}">${score.recommendation}</span>
+      <span class="score-badge" style="background:var(--cream);color:var(--muted)">${score.overall_score}/10 overall</span>
+      <span class="score-badge" style="background:var(--cream);color:var(--muted)">thesis ${score.thesis_fit}/10</span>
+    `;
+    result.innerHTML = formatText(data.formatted || '');
+  } catch(e) {
+    result.textContent = 'Error: ' + e.message;
+  }
+  btn.disabled = false;
+  btn.textContent = 'Score deal →';
+}
+
+async function showDigest() {
+  const content = document.getElementById('digest-content');
+  content.innerHTML = '<span class="spinner spinner-gold"></span>Loading...';
+  try {
+    const res = await fetch('/digest');
+    const data = await res.json();
+    if (!res.ok) throw new Error(formatErrorDetail(data.detail));
+    if (data.digest && data.digest !== 'No digest generated yet.') {
+      const date = data.generated_at ? new Date(data.generated_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+      content.innerHTML = (date ? `<div style="font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px">${date}</div>` : '') + formatText(data.digest);
+    } else {
+      content.innerHTML = 'No digest yet. Click Regenerate to generate one.';
+    }
+  } catch(e) { content.textContent = 'Failed to load.'; }
+}
+
+async function regenerateDigest() {
+  const content = document.getElementById('digest-content');
+  const btn = document.getElementById('regen-btn');
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+  content.innerHTML = '<span class="spinner spinner-gold"></span>Generating weekly digest...';
+  try {
+    const res = await fetch('/digest/generate', { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(formatErrorDetail(data.detail));
+    content.innerHTML = formatText(data.digest || '');
+  } catch(e) { content.textContent = 'Failed: ' + e.message; }
+  btn.disabled = false;
+  btn.textContent = 'Regenerate';
+}
+
+async function triggerSync() {
+  const btn = document.getElementById('sync-btn');
+  const status = document.getElementById('sync-status');
+  btn.disabled = true;
+  btn.textContent = 'Syncing...';
+  try {
+    const res = await fetch('/sync', { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(formatErrorDetail(data.detail));
+    const total = data.results?.reduce((a,r) => a + r.added + r.modified, 0) || 0;
+    status.textContent = `${total} changes`;
+    document.getElementById('sync-stat').textContent = 'just now';
+  } catch(e) { status.textContent = 'Sync failed'; }
+  btn.disabled = false;
+  btn.textContent = 'Sync Affinity';
+}
+
+function renderHistory() {
+  const container = document.getElementById('history-list');
+  if (!history.length) return;
+  const slice = history.slice(0, 8);
+  container.innerHTML = slice.map((h, i) => `
+    <div class="history-item" data-i="${i}">
+      <div class="history-q"></div>
+      <div class="history-meta">${(h.category || 'general').replace(/_/g, ' ')} · ${h.time}</div>
+    </div>
+  `).join('');
+  container.querySelectorAll('.history-item').forEach((el) => {
+    const i = parseInt(el.getAttribute('data-i'), 10);
+    const h = slice[i];
+    el.querySelector('.history-q').textContent = h.q;
+    el.onclick = () => fill(h.q);
   });
+}
+
+async function loadSyncStatus() {
+  try {
+    const res = await fetch('/sync-status');
+    const data = await res.json();
+    if (data.last_sync) {
+      document.getElementById('sync-stat').textContent = new Date(data.last_sync).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    }
+  } catch(e) {}
+}
+
+document.getElementById('question').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleQuery();
+});
+
+loadSyncStatus();
 </script>
 </body>
 </html>
