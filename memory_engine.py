@@ -11,6 +11,7 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 from classifier import classify_query
 from critic import critique_answer
+from graph_query import answer_graph_query
 from query_expander import expand_query
 from reranker import rerank
 from temporal_resolver import resolve_temporal
@@ -141,6 +142,7 @@ If information seems incomplete, say so clearly."""
         "portfolio": "\nFocus on portfolio companies and investment status.",
         "counting": "\nCount and aggregate carefully. Be precise about numbers and time ranges.",
         "factual": "\nAnswer only with explicit numbers or facts from the data; if missing, say it is not in records.",
+        "graph": "\nUse the relationship graph for connectivity and paths between entities.",
         "general": "",
     }
 
@@ -174,6 +176,17 @@ Rules:
         return {
             "answer": response.content,
             "category": "factual",
+            "time_sensitive": classification.time_sensitive,
+            "quality_score": 9,
+            "grounded": True,
+            "retried": False,
+        }
+
+    if classification.category == "graph":
+        answer = answer_graph_query(query)
+        return {
+            "answer": answer,
+            "category": "graph",
             "time_sensitive": classification.time_sensitive,
             "quality_score": 9,
             "grounded": True,

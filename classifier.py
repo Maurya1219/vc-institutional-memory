@@ -23,6 +23,7 @@ class QueryClassification(BaseModel):
         "portfolio",
         "counting",
         "factual",
+        "graph",
         "general",
     ] = Field(description="The category of the query")
     reasoning: str = Field(description="Why this category was chosen")
@@ -62,6 +63,11 @@ Classify each query into one of these categories:
 - factual: Specific data points about a company — revenue, ARR, funding amount, valuation, headcount
   Examples: "what is Arnica's revenue", "how much has X raised", "what is Y's valuation"
   These require precise data. If not available, say so clearly — never estimate.
+
+- graph: Questions about connections, paths, network relationships between entities
+  Examples: "how is Ravish connected to Arnica", "what do these two companies have in common",
+  "who are our most connected contacts", "what's the path from DVC to this founder"
+  Prefer graph over relationship when the user wants paths, hops, overlap between two companies, or "most connected" hubs.
 
 - general: Anything else, general questions about the firm
 

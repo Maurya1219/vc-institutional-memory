@@ -17,3 +17,5 @@ pypdf
 docx2txt
 langchain-text-splitters
 cohere
+networkx
+pyvis

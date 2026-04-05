@@ -195,6 +195,12 @@ def run_sync() -> list:
             reload_vectorstore()
         except Exception as e:
             print(f"Could not reload in-memory vector store: {e}")
+        try:
+            from graph_builder import invalidate_graph_cache
+
+            invalidate_graph_cache()
+        except Exception as e:
+            print(f"Could not invalidate graph cache: {e}")
     else:
         print("\nNo list entry changes — vector store unchanged.")
 
