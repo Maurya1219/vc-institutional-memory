@@ -43,6 +43,12 @@ def get_vectorstore():
     return vectorstore
 
 
+def reload_vectorstore() -> None:
+    """Drop in-memory FAISS after sync/rebuild on disk."""
+    global vectorstore
+    vectorstore = None
+
+
 def dedupe_docs(docs: list[Document]) -> list[Document]:
     seen = set()
     unique = []

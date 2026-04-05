@@ -7,7 +7,7 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; }
-  .header { background: #1a3a5c; padding: 20px 32px; display: flex; align-items: center; gap: 16px; }
+  .header { background: #1a3a5c; padding: 20px 32px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; width: 100%; box-sizing: border-box; }
   .header h1 { color: white; font-size: 18px; font-weight: 600; }
   .header span { color: #7aafd4; font-size: 13px; }
   .container { max-width: 860px; margin: 0 auto; padding: 32px 20px; }
@@ -51,6 +51,10 @@
     <h1>DVC Institutional Memory</h1>
     <span>6,007 records · US Pipeline · India Pipeline · Contacts · Interactions · Real-time reasoning</span>
   </div>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:12px">
+    <span id="sync-status" style="font-size:12px;color:#7aafd4"></span>
+    <button type="button" onclick="triggerSync()" id="sync-btn" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer">Sync Affinity</button>
+  </div>
 </div>
 
 <div class="container">
@@ -86,6 +90,42 @@
 
 <script>
   const history = [];
+
+  async function triggerSync() {
+    const btn = document.getElementById('sync-btn');
+    const status = document.getElementById('sync-status');
+    btn.disabled = true;
+    btn.textContent = 'Syncing...';
+    status.textContent = '';
+    try {
+      const res = await fetch('/sync', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || res.statusText);
+      const total = (data.results || []).reduce((a, r) => a + r.added + r.modified, 0);
+      status.textContent = `Last sync: just now · ${total} changes`;
+      btn.textContent = 'Sync Affinity';
+    } catch (e) {
+      status.textContent = 'Sync failed';
+      btn.textContent = 'Sync Affinity';
+    }
+    btn.disabled = false;
+  }
+
+  async function loadSyncStatus() {
+    try {
+      const res = await fetch('/sync-status');
+      const data = await res.json();
+      if (data.last_sync) {
+        const date = new Date(data.last_sync).toLocaleDateString();
+        const added = data.last_result?.total_added ?? 0;
+        const modified = data.last_result?.total_modified ?? 0;
+        document.getElementById('sync-status').textContent =
+          `Last sync: ${date} · ${added} added, ${modified} modified`;
+      }
+    } catch (e) {}
+  }
+
+  loadSyncStatus();
 
   function fill(text) {
     document.getElementById('question').value = text;
