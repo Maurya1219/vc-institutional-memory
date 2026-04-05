@@ -13,6 +13,7 @@ from pydantic import BaseModel
 load_dotenv()
 
 from memory_engine import ask
+from proactive_engine import generate_weekly_digest, get_latest_digest
 
 CACHE_DIR = Path("affinity_cache")
 SYNC_LOG = CACHE_DIR / "sync_log.json"
@@ -38,6 +39,13 @@ async def nightly_sync_scheduler() -> None:
             print("Nightly Affinity sync completed")
         except Exception as e:
             print(f"Nightly Affinity sync failed: {e}")
+
+        if datetime.now().weekday() == 0:
+            try:
+                await asyncio.to_thread(generate_weekly_digest)
+                print("Weekly digest generated")
+            except Exception as e:
+                print(f"Digest generation failed: {e}")
 
 
 @asynccontextmanager
@@ -95,3 +103,17 @@ async def trigger_sync():
 
     results = await asyncio.to_thread(run_sync)
     return {"status": "complete", "results": results}
+
+
+@app.get("/digest")
+async def get_digest():
+    digest = get_latest_digest()
+    if not digest:
+        return {"digest": "No digest generated yet.", "generated_at": None}
+    return digest
+
+
+@app.post("/digest/generate")
+async def generate_digest():
+    result = await asyncio.to_thread(generate_weekly_digest)
+    return result

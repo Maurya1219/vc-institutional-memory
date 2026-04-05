@@ -12,6 +12,7 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from classifier import classify_query
 from critic import critique_answer
 from graph_query import answer_graph_query
+from pattern_engine import answer_pattern_query
 from query_expander import expand_query
 from reranker import rerank
 from temporal_resolver import resolve_temporal
@@ -143,6 +144,7 @@ If information seems incomplete, say so clearly."""
         "counting": "\nCount and aggregate carefully. Be precise about numbers and time ranges.",
         "factual": "\nAnswer only with explicit numbers or facts from the data; if missing, say it is not in records.",
         "graph": "\nUse the relationship graph for connectivity and paths between entities.",
+        "pattern": "\nUse aggregated pipeline analytics (velocity, sectors, engagement, sources).",
         "general": "",
     }
 
@@ -187,6 +189,17 @@ Rules:
         return {
             "answer": answer,
             "category": "graph",
+            "time_sensitive": classification.time_sensitive,
+            "quality_score": 9,
+            "grounded": True,
+            "retried": False,
+        }
+
+    if classification.category == "pattern":
+        answer = answer_pattern_query(query)
+        return {
+            "answer": answer,
+            "category": "pattern",
             "time_sensitive": classification.time_sensitive,
             "quality_score": 9,
             "grounded": True,

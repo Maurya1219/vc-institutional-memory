@@ -53,6 +53,7 @@
   </div>
   <div style="margin-left:auto;display:flex;align-items:center;gap:12px">
     <span id="sync-status" style="font-size:12px;color:#7aafd4"></span>
+    <button type="button" onclick="showDigest()" id="digest-btn" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer">Weekly Digest</button>
     <button type="button" onclick="triggerSync()" id="sync-btn" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer">Sync Affinity</button>
   </div>
 </div>
@@ -80,6 +81,14 @@
       <p>Companies needing follow-up (6+ months inactive)</p>
       <div class="stale-list" id="stale-list"></div>
     </div>
+  </div>
+
+  <div id="digest-card" class="result-card" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <strong style="font-size:15px">Weekly Pipeline Digest</strong>
+      <button type="button" onclick="regenerateDigest()" style="font-size:12px;background:none;border:1px solid #e5e5e5;border-radius:6px;padding:4px 10px;cursor:pointer">Regenerate</button>
+    </div>
+    <div class="answer" id="digest-text"></div>
   </div>
 
   <div id="history-section" style="display:none">
@@ -126,6 +135,44 @@
   }
 
   loadSyncStatus();
+
+  async function showDigest() {
+    const card = document.getElementById('digest-card');
+    const text = document.getElementById('digest-text');
+    card.style.display = 'block';
+    text.textContent = 'Loading digest...';
+    try {
+      const res = await fetch('/digest');
+      const data = await res.json();
+      const raw = typeof data.digest === 'string' ? data.digest : '';
+      const formatted = raw
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/## (.*)/g, '<h3 style="margin:16px 0 8px;font-size:15px">$1</h3>')
+        .replace(/### (.*)/g, '<h4 style="margin:12px 0 6px;font-size:13px;color:#555">$1</h4>')
+        .replace(/\n/g, '<br>');
+      text.innerHTML = formatted;
+    } catch (e) {
+      text.textContent = 'Failed to load digest: ' + e.message;
+    }
+  }
+
+  async function regenerateDigest() {
+    const text = document.getElementById('digest-text');
+    text.textContent = 'Generating fresh digest... (takes ~30 seconds)';
+    try {
+      const res = await fetch('/digest/generate', { method: 'POST' });
+      const data = await res.json();
+      const raw = typeof data.digest === 'string' ? data.digest : '';
+      const formatted = raw
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/## (.*)/g, '<h3 style="margin:16px 0 8px;font-size:15px">$1</h3>')
+        .replace(/### (.*)/g, '<h4 style="margin:12px 0 6px;font-size:13px;color:#555">$1</h4>')
+        .replace(/\n/g, '<br>');
+      text.innerHTML = formatted;
+    } catch (e) {
+      text.textContent = 'Failed: ' + e.message;
+    }
+  }
 
   function fill(text) {
     document.getElementById('question').value = text;

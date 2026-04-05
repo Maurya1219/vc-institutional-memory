@@ -24,6 +24,7 @@ class QueryClassification(BaseModel):
         "counting",
         "factual",
         "graph",
+        "pattern",
         "general",
     ] = Field(description="The category of the query")
     reasoning: str = Field(description="Why this category was chosen")
@@ -57,8 +58,9 @@ Classify each query into one of these categories:
   Examples: "how are our portfolio companies doing", "which portfolio company is in this space"
   If the user asks for revenue, ARR, valuation, funding amount, or headcount, use factual instead.
 
-- counting: Analytical questions requiring aggregation or counting
-  Examples: "how many deals did we see in 2024", "what sectors do we invest in most", "average check size"
+- counting: Simple aggregation or counting from records (not full-pipeline analytics)
+  Examples: "how many deals did we see in 2024", "how many companies in the India pipeline", "average check size"
+  Prefer pattern for sector mix, pipeline growth, source effectiveness, or cold-rate style questions.
 
 - factual: Specific data points about a company — revenue, ARR, funding amount, valuation, headcount
   Examples: "what is Arnica's revenue", "how much has X raised", "what is Y's valuation"
@@ -68,6 +70,11 @@ Classify each query into one of these categories:
   Examples: "how is Ravish connected to Arnica", "what do these two companies have in common",
   "who are our most connected contacts", "what's the path from DVC to this founder"
   Prefer graph over relationship when the user wants paths, hops, overlap between two companies, or "most connected" hubs.
+
+- pattern: Analytical questions about trends, distributions, pipeline health, deal-source effectiveness
+  Examples: "what sectors do we invest in most", "how has our pipeline grown",
+  "which deal sources work best", "what percentage of deals go cold",
+  "show me pipeline analytics", "what are our investment patterns"
 
 - general: Anything else, general questions about the firm
 
