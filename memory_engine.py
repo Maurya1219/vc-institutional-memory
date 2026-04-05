@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Optional
 
 from dotenv import load_dotenv
 from langchain_classic.agents import AgentExecutor, create_openai_functions_agent
@@ -151,7 +152,55 @@ If information seems incomplete, say so clearly."""
     return base + category_guidance.get(classification.category, "")
 
 
+def _extract_meeting_prep_company(query: str) -> Optional[str]:
+    raw = query.strip()
+    low = raw.lower()
+    if "meeting prep" not in low and "prepare for meeting" not in low:
+        return None
+    needles = [
+        "prepare for meeting with ",
+        "prepare for meeting for ",
+        "prepare for meeting ",
+        "meeting prep for ",
+        "meeting prep:",
+        "meeting prep — ",
+        "meeting prep - ",
+        "meeting prep ",
+    ]
+    for needle in needles:
+        i = low.find(needle)
+        if i != -1:
+            rest = raw[i + len(needle) :].strip()
+            if not rest:
+                return None
+            low_rest = rest.lower()
+            if low_rest.startswith("with "):
+                rest = rest[5:].strip()
+            elif low_rest.startswith("for "):
+                rest = rest[4:].strip()
+            return rest or None
+    return None
+
+
 def ask(query: str, verbose: bool = False) -> dict:
+    prep_company = _extract_meeting_prep_company(query)
+    if prep_company:
+        from meeting_prep import run_meeting_prep
+
+        result = run_meeting_prep(
+            prep_company,
+            lambda name: search_with_notes(f"everything about {name}"),
+            lambda name: answer_graph_query(f"who do we know at {name}"),
+        )
+        return {
+            "answer": result["brief"],
+            "category": "meeting_prep",
+            "time_sensitive": False,
+            "quality_score": 9,
+            "grounded": True,
+            "retried": False,
+        }
+
     classification = classify_query(query)
 
     if verbose:

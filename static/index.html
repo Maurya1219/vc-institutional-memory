@@ -42,6 +42,12 @@
   .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .section-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #999; margin-bottom: 10px; }
+  .search-card h2 { font-size: 16px; font-weight: 600; margin-bottom: 4px; color: #1a1a1a; }
+  .answer-box { display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid #eee; }
+  .tool-row input[type="text"] { border: 1px solid #e5e5e5; border-radius: 8px; padding: 10px 12px; font-size: 14px; outline: none; font-family: inherit; }
+  .tool-row input[type="text"]:focus { border-color: #1a3a5c; }
+  .tool-textarea { width: 100%; border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px; font-size: 14px; font-family: inherit; min-height: 80px; height: auto; resize: vertical; outline: none; }
+  .tool-textarea:focus { border-color: #1a3a5c; }
 </style>
 </head>
 <body>
@@ -71,6 +77,37 @@
       <button class="example" onclick="fill('What is the current status of Secufusion?')">Secufusion status</button>
       <button class="example" onclick="fill('Have we seen any AI infrastructure companies?')">AI infrastructure</button>
       <button class="example" onclick="fill('Which deals from early 2024 have we not followed up on?')">Stale 2024 deals</button>
+    </div>
+  </div>
+
+  <div class="search-card">
+    <h2>Meeting prep</h2>
+    <p style="font-size:13px;color:#666;margin-bottom:16px">Get a full briefing before any meeting — relationship history, partner notes, red flags, and talking points.</p>
+    <div class="tool-row" style="display:flex;gap:10px;align-items:stretch">
+      <input type="text" id="prep-company" placeholder="Company name e.g. Arnica, Secufusion..." style="flex:1">
+      <button type="button" class="btn" onclick="handleMeetingPrep()" style="align-self:stretch">Prep</button>
+    </div>
+    <div class="answer-box" id="prep-box">
+      <div class="answer" id="prep-text"></div>
+    </div>
+  </div>
+
+  <div class="search-card">
+    <h2>Score a deal</h2>
+    <p style="font-size:13px;color:#666;margin-bottom:16px">Evaluate a new company against DVC's historical thesis and pipeline patterns.</p>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <input type="text" id="score-company" placeholder="Company name" style="width:100%;border:1px solid #e5e5e5;border-radius:8px;padding:10px 12px;font-size:14px;outline:none;font-family:inherit">
+      <textarea id="score-description" class="tool-textarea" placeholder="What does the company do? Include sector, stage, traction, team background, and ask."></textarea>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <input type="text" id="score-sector" placeholder="Sector (e.g. B2B SaaS, Cybersecurity)" style="flex:1;min-width:140px;border:1px solid #e5e5e5;border-radius:8px;padding:10px 12px;font-size:14px;outline:none;font-family:inherit">
+        <input type="text" id="score-stage" placeholder="Stage (e.g. Seed, Series A)" style="flex:1;min-width:120px;border:1px solid #e5e5e5;border-radius:8px;padding:10px 12px;font-size:14px;outline:none;font-family:inherit">
+        <input type="text" id="score-ask" placeholder="Ask (e.g. $2M)" style="flex:1;min-width:100px;border:1px solid #e5e5e5;border-radius:8px;padding:10px 12px;font-size:14px;outline:none;font-family:inherit">
+      </div>
+      <button type="button" class="btn" onclick="handleScoreDeal()" style="align-self:flex-start">Score Deal</button>
+    </div>
+    <div class="answer-box" id="score-box">
+      <div id="score-badges" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"></div>
+      <div class="answer" id="score-text"></div>
     </div>
   </div>
 
@@ -135,6 +172,82 @@
   }
 
   loadSyncStatus();
+
+  async function handleMeetingPrep() {
+    const company = document.getElementById('prep-company').value.trim();
+    if (!company) return;
+    const box = document.getElementById('prep-box');
+    const text = document.getElementById('prep-text');
+    box.style.display = 'block';
+    text.textContent = 'Preparing brief for ' + company + '... (15-20 seconds)';
+    try {
+      const res = await fetch('/meeting-prep', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatErrorDetail(data.detail));
+      const formatted = (data.brief || '')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/## (.*)/g, '<h3 style="margin:16px 0 6px;font-size:15px;color:#1a3a5c">$1</h3>')
+        .replace(/### (.*)/g, '<h4 style="margin:10px 0 4px;font-size:13px;font-weight:600;color:#555">$1</h4>')
+        .replace(/\n/g, '<br>');
+      text.innerHTML = formatted;
+    } catch (e) {
+      text.textContent = 'Error: ' + e.message;
+    }
+  }
+
+  async function handleScoreDeal() {
+    const company = document.getElementById('score-company').value.trim();
+    const description = document.getElementById('score-description').value.trim();
+    if (!company || !description) return;
+    const box = document.getElementById('score-box');
+    const text = document.getElementById('score-text');
+    const badges = document.getElementById('score-badges');
+    box.style.display = 'block';
+    text.textContent = 'Scoring ' + company + '... (15-20 seconds)';
+    badges.innerHTML = '';
+    try {
+      const res = await fetch('/score-deal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company,
+          description,
+          sector: document.getElementById('score-sector').value,
+          stage: document.getElementById('score-stage').value,
+          ask: document.getElementById('score-ask').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatErrorDetail(data.detail));
+      const score = data.score;
+      const recColor = {
+        'Pass': 'badge-stale',
+        'Watch': 'badge-conflict',
+        'Pursue': 'badge-confidence-high',
+        'Priority': 'badge-confidence-high'
+      }[score.recommendation] || 'badge-category';
+      badges.innerHTML = `
+        <span class="badge ${recColor}">${score.recommendation}</span>
+        <span class="badge badge-category">Overall: ${score.overall_score}/10</span>
+        <span class="badge badge-confidence-${score.overall_score >= 7 ? 'high' : score.overall_score >= 5 ? 'medium' : 'low'}">
+          Thesis fit: ${score.thesis_fit}/10
+        </span>
+      `;
+      const formatted = (data.formatted || '')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/## (.*)/g, '<h3 style="margin:16px 0 6px;font-size:15px;color:#1a3a5c">$1</h3>')
+        .replace(/### (.*)/g, '<h4 style="margin:10px 0 4px;font-size:13px;font-weight:600;color:#555">$1</h4>')
+        .replace(/\|/g, ' | ')
+        .replace(/\n/g, '<br>');
+      text.innerHTML = formatted;
+    } catch (e) {
+      text.textContent = 'Error: ' + e.message;
+    }
+  }
 
   async function showDigest() {
     const card = document.getElementById('digest-card');

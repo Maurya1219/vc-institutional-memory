@@ -12,7 +12,10 @@ from pydantic import BaseModel
 
 load_dotenv()
 
-from memory_engine import ask
+from deal_scorer import format_score, score_deal
+from graph_query import answer_graph_query
+from memory_engine import ask, search_with_notes
+from meeting_prep import run_meeting_prep
 from proactive_engine import generate_weekly_digest, get_latest_digest
 
 CACHE_DIR = Path("affinity_cache")
@@ -60,6 +63,19 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 class Query(BaseModel):
     question: str
+
+
+class MeetingPrepRequest(BaseModel):
+    company: str
+
+
+class ScoreDealRequest(BaseModel):
+    company: str
+    description: str
+    sector: str = ""
+    stage: str = ""
+    ask: str = ""
+    extra_context: str = ""
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -117,3 +133,66 @@ async def get_digest():
 async def generate_digest():
     result = await asyncio.to_thread(generate_weekly_digest)
     return result
+
+
+def _meeting_prep_sync(company: str) -> dict:
+    def rag_context(name: str) -> str:
+        return search_with_notes(f"everything about {name} notes history status")
+
+    def graph_context(name: str) -> str:
+        return answer_graph_query(f"who do we know at {name}")
+
+    return run_meeting_prep(company, rag_context, graph_context)
+
+
+@app.post("/meeting-prep")
+async def meeting_prep_endpoint(body: MeetingPrepRequest):
+    company = body.company.strip()
+    if not company:
+        raise HTTPException(status_code=400, detail="Company name required")
+    try:
+        return await asyncio.to_thread(_meeting_prep_sync, company)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+def _score_deal_sync(body: ScoreDealRequest) -> dict:
+    sc = score_deal(
+        company_name=body.company,
+        description=body.description,
+        sector=body.sector,
+        stage=body.stage,
+        ask=body.ask,
+        extra_context=body.extra_context,
+    )
+    formatted = format_score(sc, body.company)
+    return {
+        "company": body.company,
+        "score": sc.model_dump(),
+        "formatted": formatted,
+        "generated_at": datetime.now().isoformat(),
+    }
+
+
+@app.post("/score-deal")
+async def score_deal_endpoint(body: ScoreDealRequest):
+    company = body.company.strip()
+    description = body.description.strip()
+    if not company or not description:
+        raise HTTPException(
+            status_code=400, detail="Company and description required"
+        )
+    payload = body.model_copy(
+        update={
+            "company": company,
+            "description": description,
+            "sector": body.sector.strip(),
+            "stage": body.stage.strip(),
+            "ask": body.ask.strip(),
+            "extra_context": body.extra_context.strip(),
+        }
+    )
+    try:
+        return await asyncio.to_thread(_score_deal_sync, payload)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
