@@ -12,3 +12,8 @@ psycopg2-binary
 sqlalchemy
 pandas
 tqdm
+msal
+pypdf
+docx2txt
+langchain-text-splitters
+cohere

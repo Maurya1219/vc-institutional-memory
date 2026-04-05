@@ -9,6 +9,7 @@ from langchain_core.tools import Tool
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 from classifier import classify_query
+from reranker import rerank
 from temporal_resolver import resolve_temporal
 
 load_dotenv()
@@ -39,13 +40,14 @@ def get_vectorstore():
     return vectorstore
 
 
-def search_deals(query: str, k: int = 8) -> str:
+def search_deals(query: str, k: int = 20) -> str:
     docs = get_vectorstore().similarity_search(query, k=k)
+    docs = rerank(query, docs, top_n=5)
     return "\n\n".join(
         [
             f"Company: {d.metadata.get('company')}\n"
+            f"List: {d.metadata.get('list')}\n"
             f"Date: {d.metadata.get('date')}\n"
-            f"Source: {d.metadata.get('source')}\n"
             f"{d.page_content}"
             for d in docs
         ]
@@ -59,30 +61,35 @@ def search_recent(query: str) -> str:
         key=lambda d: d.metadata.get("date", ""),
         reverse=True,
     )
+    docs_reranked = rerank(query, docs_sorted[:20], top_n=5)
     return "\n\n".join(
         [
             f"Company: {d.metadata.get('company')}\n"
             f"Date added: {d.metadata.get('date')}\n"
             f"{d.page_content}"
-            for d in docs_sorted[:8]
+            for d in docs_reranked
         ]
     )
 
 
 def search_with_notes(query: str) -> str:
-    docs = get_vectorstore().similarity_search(query, k=10)
-    results = []
-    for d in docs:
-        pc = d.page_content.lower()
-        if "partner notes" in pc and "no partner notes" not in pc:
-            results.append(
-                f"Company: {d.metadata.get('company')}\n"
-                f"Date: {d.metadata.get('date')}\n"
-                f"{d.page_content}"
-            )
-    if not results:
-        return search_deals(query)
-    return "\n\n".join(results[:6])
+    docs = get_vectorstore().similarity_search(query, k=20)
+    docs_with_notes = [
+        d
+        for d in docs
+        if "partner notes" in d.page_content.lower()
+        and "no partner notes" not in d.page_content.lower()
+    ]
+    candidates = docs_with_notes if docs_with_notes else docs
+    reranked = rerank(query, candidates, top_n=5)
+    return "\n\n".join(
+        [
+            f"Company: {d.metadata.get('company')}\n"
+            f"Date: {d.metadata.get('date')}\n"
+            f"{d.page_content}"
+            for d in reranked
+        ]
+    )
 
 
 def build_system_prompt(classification) -> str:

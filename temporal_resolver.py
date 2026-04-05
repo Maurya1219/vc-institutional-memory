@@ -8,6 +8,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
+from reranker import rerank
+
 load_dotenv()
 
 llm = ChatOpenAI(
@@ -161,6 +163,7 @@ def resolve_temporal(query: str, docs: list[Document]) -> dict:
             "stale_companies": [],
         }
 
+    docs = rerank(query, docs, top_n=10)
     groups = group_by_company(docs)
     context = format_context_for_resolution(groups)
 
