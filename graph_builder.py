@@ -18,6 +18,23 @@ def load_cache(name: str) -> list:
     return []
 
 
+def _bump_company_person_edge(
+    G: nx.Graph,
+    company_name: str,
+    person_name: str,
+    relationship: str,
+    weight: int,
+) -> None:
+    if not person_name or not G.has_node(person_name):
+        return
+    if G.has_edge(company_name, person_name):
+        G[company_name][person_name]["weight"] = (
+            G[company_name][person_name].get("weight", 1) + 1
+        )
+    else:
+        G.add_edge(company_name, person_name, relationship=relationship, weight=weight)
+
+
 def build_graph() -> nx.Graph:
     G = nx.Graph()
 
@@ -27,158 +44,154 @@ def build_graph() -> nx.Graph:
     interactions = load_cache("DVC VC Ecosystem Interactions")
     contacts = load_cache("DVC Contacts 4D")
 
-    def get_name(entry: dict) -> str:
-        entity = entry.get("entity", {}) or {}
-        if not isinstance(entity, dict):
-            entity = {}
-        aff = entry.get("_affinity") or {}
-        if isinstance(aff, dict) and aff.get("company_name"):
-            return str(aff["company_name"]).strip()
-        if isinstance(aff, dict) and aff.get("contact_name"):
-            return str(aff["contact_name"]).strip()
-        return (
-            entity.get("name")
-            or f"{entity.get('first_name', '')} {entity.get('last_name', '')}".strip()
-            or f"entity_{entry.get('entity_id', 'unknown')}"
-        ).strip()
+    print("Building contact index...")
 
-    def add_company(entry: dict, list_name: str):
-        name = get_name(entry)
-        if not name or name == "Unknown":
-            return None
-        entity_id = str(entry.get("entity_id", ""))
-        G.add_node(
-            name,
-            type="company",
-            list=list_name,
-            date=(entry.get("created_at") or "")[:10],
-            entity_id=entity_id,
-        )
-        org_ids = entry.get("organization_ids", [])
-        person_ids = entry.get("person_ids", [])
-        return name, org_ids, person_ids
+    contact_by_entity_id: dict = {}
+    contact_by_creator_id: dict = {}
 
-    def add_contact(entry: dict):
-        entity = entry.get("entity", {}) or {}
-        if not isinstance(entity, dict):
-            entity = {}
-        aff = entry.get("_affinity") or {}
-        if isinstance(aff, dict) and aff.get("contact_name"):
-            name = str(aff["contact_name"]).strip()
-            email = aff.get("email", "") or ""
-        else:
-            first = entity.get("first_name", "") or ""
-            last = entity.get("last_name", "") or ""
-            email = entity.get("primary_email", "") or ""
-            name = f"{first} {last}".strip()
-        if not name:
-            return None
-        G.add_node(
-            name,
-            type="person",
-            email=email,
-            entity_id=str(entry.get("entity_id", "")),
-        )
-        return name
-
-    print("Building graph nodes...")
-
-    company_nodes: dict = {}
-    for entry in tracker:
-        result = add_company(entry, "Master Tracker")
-        if result:
-            name, org_ids, person_ids = result
-            company_nodes[name] = {"org_ids": org_ids, "person_ids": person_ids}
-
-    for entry in us_pipeline:
-        result = add_company(entry, "US Pipeline")
-        if result:
-            name, org_ids, person_ids = result
-            company_nodes[name] = {"org_ids": org_ids, "person_ids": person_ids}
-
-    for entry in india_pipeline:
-        result = add_company(entry, "India Pipeline")
-        if result:
-            name, org_ids, person_ids = result
-            company_nodes[name] = {"org_ids": org_ids, "person_ids": person_ids}
-
-    contact_nodes: dict = {}
     for entry in contacts:
-        name = add_contact(entry)
-        if name:
-            eid = str(entry.get("entity_id", ""))
-            contact_nodes[eid] = name
-
-    print(f"Nodes: {G.number_of_nodes()} entities")
-
-    print("Building edges from interactions...")
-    for entry in interactions:
         entity = entry.get("entity", {}) or {}
         if not isinstance(entity, dict):
             entity = {}
-        aff = entry.get("_affinity") or {}
-        company_name = (
-            aff.get("company_name") if isinstance(aff, dict) else None
-        ) or entity.get("name", "")
-        person_ids = entry.get("person_ids", [])
+        affinity = entry.get("_affinity", {}) or {}
+        if not isinstance(affinity, dict):
+            affinity = {}
+        name = (
+            affinity.get("contact_name")
+            or f"{entity.get('first_name', '')} {entity.get('last_name', '')}".strip()
+        )
+        if not name:
+            continue
+        entity_id = str(entry.get("entity_id", ""))
+        creator_id = str(entry.get("creator_id", ""))
+        email = affinity.get("email") or entity.get("primary_email", "") or ""
 
-        if company_name and G.has_node(company_name):
-            for pid in person_ids:
-                contact_name = contact_nodes.get(str(pid))
-                if contact_name and G.has_node(contact_name):
-                    if G.has_edge(company_name, contact_name):
-                        G[company_name][contact_name]["weight"] = (
-                            G[company_name][contact_name].get("weight", 1) + 1
-                        )
-                    else:
-                        G.add_edge(
+        G.add_node(name, type="person", entity_id=entity_id, email=email)
+
+        if entity_id:
+            contact_by_entity_id[entity_id] = name
+        if creator_id:
+            contact_by_creator_id[creator_id] = name
+
+    print(f"Contacts indexed: {len(contact_by_entity_id)}")
+
+    print("Building company nodes and edges from notes...")
+
+    def process_list(entries: list, list_name: str) -> None:
+        for entry in entries:
+            entity = entry.get("entity", {}) or {}
+            if not isinstance(entity, dict):
+                entity = {}
+            affinity = entry.get("_affinity", {}) or {}
+            if not isinstance(affinity, dict):
+                affinity = {}
+
+            company_name = (
+                affinity.get("company_name") or entity.get("name", "")
+            ).strip()
+            if not company_name:
+                continue
+
+            G.add_node(
+                company_name,
+                type="company",
+                list=list_name,
+                date=(entry.get("created_at") or "")[:10],
+                entity_id=str(entry.get("entity_id", "")),
+            )
+
+            notes = affinity.get("notes", []) or []
+            for note in notes:
+                if not isinstance(note, dict):
+                    continue
+
+                creator_id = str(note.get("creator_id", "") or "")
+                author = contact_by_entity_id.get(
+                    creator_id
+                ) or contact_by_creator_id.get(creator_id)
+                if author:
+                    _bump_company_person_edge(
+                        G, company_name, author, "note_author", 1
+                    )
+
+                for pid in note.get("mentioned_person_ids", []) or []:
+                    pid_str = str(pid)
+                    if pid_str in contact_by_entity_id:
+                        _bump_company_person_edge(
+                            G,
                             company_name,
-                            contact_name,
-                            relationship="interaction",
-                            weight=1,
+                            contact_by_entity_id[pid_str],
+                            "mentioned",
+                            1,
                         )
 
-    print("Connecting shared relationships...")
-    person_to_companies: dict = {}
-    for company, data in company_nodes.items():
-        for pid in data.get("person_ids", []):
-            pid_str = str(pid)
-            person_to_companies.setdefault(pid_str, []).append(company)
+                for pid in note.get("interaction_person_ids", []) or []:
+                    pid_str = str(pid)
+                    if pid_str in contact_by_entity_id:
+                        _bump_company_person_edge(
+                            G,
+                            company_name,
+                            contact_by_entity_id[pid_str],
+                            "interaction",
+                            2,
+                        )
 
-    for pid, companies in person_to_companies.items():
-        contact_name = contact_nodes.get(pid)
-        for company in companies:
-            if (
-                contact_name
-                and G.has_node(contact_name)
-                and G.has_node(company)
-            ):
-                if G.has_edge(company, contact_name):
-                    G[company][contact_name]["weight"] = (
-                        G[company][contact_name].get("weight", 1) + 1
-                    )
-                else:
-                    G.add_edge(
-                        company,
-                        contact_name,
-                        relationship="contact",
-                        weight=2,
-                    )
+                for pid in note.get("associated_person_ids", []) or []:
+                    pid_str = str(pid)
+                    if pid_str in contact_by_entity_id:
+                        _bump_company_person_edge(
+                            G,
+                            company_name,
+                            contact_by_entity_id[pid_str],
+                            "associated",
+                            1,
+                        )
+
+    process_list(tracker, "Master Tracker")
+    process_list(us_pipeline, "US Pipeline")
+    process_list(india_pipeline, "India Pipeline")
+    process_list(interactions, "VC Ecosystem")
+
+    print("Connecting companies via shared contacts...")
+    # Skip pairwise company-company links for hub people (e.g. partners on 100s of
+    # deals) — otherwise the graph becomes millions of dense shared_contact edges.
+    max_companies_per_person_for_shared_clique = 48
+
+    contact_to_companies: dict = {}
+    for u, v, _data in G.edges(data=True):
+        u_type = G.nodes[u].get("type")
+        v_type = G.nodes[v].get("type")
+        if u_type == "company" and v_type == "person":
+            company, person = u, v
+        elif u_type == "person" and v_type == "company":
+            company, person = v, u
+        else:
+            continue
+        contact_to_companies.setdefault(person, []).append(company)
+
+    for person, companies in contact_to_companies.items():
+        if len(companies) > max_companies_per_person_for_shared_clique:
+            continue
         for i in range(len(companies)):
             for j in range(i + 1, len(companies)):
-                a, b = companies[i], companies[j]
-                if G.has_node(a) and G.has_node(b):
-                    if G.has_edge(a, b):
-                        G[a][b]["weight"] = G[a][b].get("weight", 1) + 1
-                    else:
-                        G.add_edge(
-                            a,
-                            b,
-                            relationship="shared_contact",
-                            weight=1,
-                        )
+                c1, c2 = companies[i], companies[j]
+                if G.has_edge(c1, c2):
+                    G[c1][c2]["weight"] = G[c1][c2].get("weight", 1) + 1
+                    via = G[c1][c2].get("via")
+                    if via is None:
+                        G[c1][c2]["via"] = [person]
+                    elif person not in via:
+                        via.append(person)
+                else:
+                    G.add_edge(
+                        c1,
+                        c2,
+                        relationship="shared_contact",
+                        weight=1,
+                        via=[person],
+                    )
 
-    print(f"Graph complete: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges")
+    print(f"Graph: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges")
     return G
 
 

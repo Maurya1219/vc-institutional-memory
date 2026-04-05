@@ -60,15 +60,27 @@ def format_connections(result: dict) -> str:
         return f"No entity found matching '{result['entity']}' in the graph."
 
     lines = [f"**{result['entity']}** ({result['type']})"]
-    lines.append(f"\nDirect connections ({len(result['direct_connections'])}):")
 
-    for conn in result["direct_connections"][:10]:
-        lines.append(
-            f"- {conn['name']} ({conn['type']}) — {conn['relationship']}"
-        )
+    people = [c for c in result["direct_connections"] if c["type"] == "person"]
+    companies = [c for c in result["direct_connections"] if c["type"] == "company"]
+
+    if people:
+        lines.append(f"\nPeople connected ({len(people)}):")
+        for p in people[:10]:
+            lines.append(
+                f"- {p['name']} ({p['relationship']}, strength: {p['weight']})"
+            )
+
+    if companies:
+        lines.append(f"\nRelated companies ({len(companies)}):")
+        for c in companies[:10]:
+            lines.append(f"- {c['name']} ({c['relationship']})")
+
+    if not people and not companies:
+        lines.append("\nNo direct connections in the graph.")
 
     if result["second_hop"]:
-        lines.append(f"\nReachable in 2 hops ({len(result['second_hop'])}):")
+        lines.append("\nReachable in 2 hops:")
         for hop in result["second_hop"][:8]:
             via = f" via {hop['via']}" if hop["via"] else ""
             lines.append(f"- {hop['name']}{via}")
