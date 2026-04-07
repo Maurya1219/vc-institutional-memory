@@ -1,5 +1,8 @@
 fastapi
+starlette
 uvicorn[standard]
+httpx
+itsdangerous
 requests
 python-dotenv
 openai

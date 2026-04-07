@@ -132,6 +132,8 @@ body { font-family: 'Instrument Sans', sans-serif; background: var(--paper); col
   </div>
   <div class="masthead-actions">
     <span class="sync-status" id="sync-status"></span>
+    <span id="user-name" style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace"></span>
+    <button type="button" class="btn-ghost" onclick="window.location='/auth/logout'">Sign out</button>
     <button type="button" class="btn-ghost" onclick="triggerSync()" id="sync-btn">Sync Affinity</button>
     <button type="button" class="btn-ghost" onclick="showDigest()" id="digest-btn">Weekly Digest</button>
   </div>
@@ -208,6 +210,15 @@ body { font-family: 'Instrument Sans', sans-serif; background: var(--paper); col
 <script>
 const history = [];
 
+async function apiFetch(url, options = {}) {
+  const res = await fetch(url, { ...options, credentials: 'include' });
+  if (res.status === 401) {
+    window.location.href = '/auth/login';
+    throw new Error('Not authenticated');
+  }
+  return res;
+}
+
 function fill(text) {
   document.getElementById('question').value = text;
   document.getElementById('question').focus();
@@ -243,7 +254,7 @@ async function handleQuery() {
   meta.innerHTML = '';
   staleBox.style.display = 'none';
   try {
-    const res = await fetch('/query', {
+    const res = await apiFetch('/query', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ question: q })
@@ -281,7 +292,7 @@ async function handleMeetingPrep() {
   result.style.display = 'block';
   result.innerHTML = `<span class="spinner spinner-gold"></span>Pulling intelligence on ${company}...`;
   try {
-    const res = await fetch('/meeting-prep', {
+    const res = await apiFetch('/meeting-prep', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ company })
@@ -309,7 +320,7 @@ async function handleScoreDeal() {
   badges.innerHTML = '';
   result.innerHTML = `<span class="spinner spinner-gold"></span>Evaluating ${company}...`;
   try {
-    const res = await fetch('/score-deal', {
+    const res = await apiFetch('/score-deal', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -340,7 +351,7 @@ async function showDigest() {
   const content = document.getElementById('digest-content');
   content.innerHTML = '<span class="spinner spinner-gold"></span>Loading...';
   try {
-    const res = await fetch('/digest');
+    const res = await apiFetch('/digest');
     const data = await res.json();
     if (!res.ok) throw new Error(formatErrorDetail(data.detail));
     if (data.digest && data.digest !== 'No digest generated yet.') {
@@ -359,7 +370,7 @@ async function regenerateDigest() {
   btn.textContent = 'Generating...';
   content.innerHTML = '<span class="spinner spinner-gold"></span>Generating weekly digest...';
   try {
-    const res = await fetch('/digest/generate', { method: 'POST' });
+    const res = await apiFetch('/digest/generate', { method: 'POST' });
     const data = await res.json();
     if (!res.ok) throw new Error(formatErrorDetail(data.detail));
     content.innerHTML = formatText(data.digest || '');
@@ -374,7 +385,7 @@ async function triggerSync() {
   btn.disabled = true;
   btn.textContent = 'Syncing...';
   try {
-    const res = await fetch('/sync', { method: 'POST' });
+    const res = await apiFetch('/sync', { method: 'POST' });
     const data = await res.json();
     if (!res.ok) throw new Error(formatErrorDetail(data.detail));
     const total = data.results?.reduce((a,r) => a + r.added + r.modified, 0) || 0;
@@ -405,10 +416,20 @@ function renderHistory() {
 
 async function loadSyncStatus() {
   try {
-    const res = await fetch('/sync-status');
+    const res = await apiFetch('/sync-status');
     const data = await res.json();
     if (data.last_sync) {
       document.getElementById('sync-stat').textContent = new Date(data.last_sync).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    }
+  } catch(e) {}
+}
+
+async function loadUser() {
+  try {
+    const res = await fetch('/auth/me', { credentials: 'include' });
+    const data = await res.json();
+    if (data.authenticated) {
+      document.getElementById('user-name').textContent = data.name || data.email || '';
     }
   } catch(e) {}
 }
@@ -417,6 +438,7 @@ document.getElementById('question').addEventListener('keydown', e => {
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleQuery();
 });
 
+loadUser();
 loadSyncStatus();
 </script>
 </body>
