@@ -122,10 +122,17 @@ def require_auth(request: Request):
 def _meeting_prep_sync(company: str) -> dict:
     from graph_query import answer_graph_query
     from meeting_prep import run_meeting_prep
-    from memory_engine import search_with_notes
+    from memory_engine import format_docs, routed_search
 
     def rag_context(name: str) -> str:
-        return search_with_notes(f"everything about {name} notes history status")
+        docs, _ = routed_search(
+            f"everything about {name} notes history status",
+            "meeting_prep",
+            k_primary=20,
+            k_secondary=10,
+            rerank_top_n=8,
+        )
+        return format_docs(docs)
 
     def graph_context(name: str) -> str:
         return answer_graph_query(f"who do we know at {name}")
