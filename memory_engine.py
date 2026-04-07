@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -312,6 +313,90 @@ Rules:
             "conflicts": result.get("conflicts", False),
             "confidence": result.get("confidence", "medium"),
             "stale_companies": result.get("stale_companies", []),
+        }
+
+    if classification.category == "relationship":
+        docs, _ = routed_search(query, "relationship")
+        context = format_docs(docs)
+        content_volume = sum(len(d.page_content) for d in docs)
+
+        web_context = ""
+        tavily_key = os.getenv("TAVILY_API_KEY")
+        if (
+            tavily_key
+            and (
+                content_volume < 500
+                or "no additional notes" in context.lower()
+            )
+        ):
+            try:
+                from langchain_community.tools.tavily_search import TavilySearchResults
+
+                search = TavilySearchResults(
+                    max_results=3,
+                    tavily_api_key=tavily_key,
+                )
+                web_results = search.invoke({"query": query})
+                if web_results:
+                    lines = []
+                    for r in web_results:
+                        if isinstance(r, dict):
+                            snippet = r.get("content") or r.get("snippet") or ""
+                            lines.append(f"- {snippet[:300]}")
+                        else:
+                            lines.append(f"- {str(r)[:300]}")
+                    web_context = "\n\nWeb search results:\n" + "\n".join(lines)
+            except Exception as e:
+                print(f"Web search failed: {e}")
+
+        graph_context = ""
+        try:
+            qstrip = query.strip()
+            if re.search(r"(?i)^who\s+is\s+", qstrip):
+                focus = re.sub(r"(?i)^who\s+is\s+", "", qstrip).strip()
+                graph_q = (
+                    f"who is {focus} and what companies and people are they "
+                    f"connected to in our network?"
+                )
+            else:
+                graph_q = query
+            graph_result = answer_graph_query(graph_q)
+            if graph_result and "No entity found" not in graph_result:
+                graph_context = f"\n\nGraph connections:\n{graph_result}"
+        except Exception as e:
+            if verbose:
+                print(f"Graph enrichment skipped: {e}")
+
+        combined_context = context + graph_context + web_context
+
+        person_prompt = f"""You are an analyst for Dallas Venture Capital.
+
+Question: {query}
+
+Internal CRM data:
+{context}
+{graph_context}
+{web_context}
+
+Answer comprehensively:
+- Who is this person and what is their role
+- Which company do they work for and what does that company do
+- How does DVC know them — when was first contact, what interactions have happened
+- Any relevant context about their background
+- If web search provided info, incorporate it and note it came from public sources
+
+Be specific. If their company is in our pipeline, mention that context."""
+
+        response = llm.invoke(person_prompt)
+        critique = critique_answer(query, combined_context, response.content)
+
+        return {
+            "answer": response.content,
+            "category": "relationship",
+            "time_sensitive": classification.time_sensitive,
+            "quality_score": critique.quality_score,
+            "grounded": critique.is_grounded,
+            "retried": False,
         }
 
     cat = classification.category

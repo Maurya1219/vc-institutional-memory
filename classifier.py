@@ -48,8 +48,10 @@ Classify each query into one of these categories:
 - deal_search: Looking for specific companies, deals, sectors, or investments
   Examples: "have we seen any fintech companies", "what do we know about Secufusion", "show me enterprise SaaS deals"
 
-- relationship: Questions about people, founders, network connections, introductions
-  Examples: "who knows this CEO", "have we met this founder before", "who introduced us to X"
+- relationship: Questions about specific people, founders, contacts, or network connections (not graph paths/hubs — use graph for those)
+  Examples: "who is Dave Garrison", "who do we know at Arnica", "tell me about [person name]",
+  "who knows this CEO", "have we met this founder before", "who introduced us to X"
+  For person queries, always aim to establish: role, company, how DVC knows them, and relevant background.
 
 - temporal: Questions about current status, what's happening now, recent activity
   Examples: "who is currently raising", "what deals are active", "what's changed recently"

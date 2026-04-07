@@ -11,6 +11,7 @@ langchain
 langchain-classic
 langchain-openai
 langchain-community
+tavily-python
 faiss-cpu
 psycopg2-binary
 sqlalchemy
