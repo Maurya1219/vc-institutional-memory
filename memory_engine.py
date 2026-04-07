@@ -16,6 +16,7 @@ from graph_query import answer_graph_query
 from pattern_engine import answer_pattern_query
 from query_expander import expand_query
 from reranker import rerank
+from source_ranker import format_metric_answer, guess_company_from_query, rank_docs_for_metrics
 from temporal_resolver import resolve_temporal
 
 load_dotenv()
@@ -146,6 +147,7 @@ If information seems incomplete, say so clearly."""
         "factual": "\nAnswer only with explicit numbers or facts from the data; if missing, say it is not in records.",
         "graph": "\nUse the relationship graph for connectivity and paths between entities.",
         "pattern": "\nUse aggregated pipeline analytics (velocity, sectors, engagement, sources).",
+        "metrics": "\nUse source-ranked retrieval; cite credibility and dates for KPIs.",
         "general": "",
     }
 
@@ -252,6 +254,38 @@ Rules:
             "time_sensitive": classification.time_sensitive,
             "quality_score": 9,
             "grounded": True,
+            "retried": False,
+        }
+
+    if classification.category == "metrics":
+        company = guess_company_from_query(query)
+        raw_docs = get_vectorstore().similarity_search(query, k=20)
+        for q in expand_query(query)[1:]:
+            raw_docs.extend(get_vectorstore().similarity_search(q, k=10))
+        raw_docs = dedupe_docs(raw_docs)
+        raw_docs = rerank(query, raw_docs, top_n=10)
+
+        ranked = rank_docs_for_metrics(raw_docs, company)
+        answer = format_metric_answer(query, ranked, llm)
+
+        top_score = ranked[0][1] if ranked else {"credibility": 0}
+        confidence = (
+            "high"
+            if top_score["credibility"] >= 80
+            else "medium"
+            if top_score["credibility"] >= 55
+            else "low"
+        )
+        cred = top_score.get("credibility", 0)
+        qs = max(1, min(10, (cred // 10) or 1))
+
+        return {
+            "answer": answer,
+            "category": "metrics",
+            "time_sensitive": classification.time_sensitive,
+            "quality_score": qs,
+            "grounded": True,
+            "confidence": confidence,
             "retried": False,
         }
 

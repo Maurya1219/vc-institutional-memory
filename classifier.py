@@ -23,6 +23,7 @@ class QueryClassification(BaseModel):
         "portfolio",
         "counting",
         "factual",
+        "metrics",
         "graph",
         "pattern",
         "general",
@@ -54,17 +55,22 @@ Classify each query into one of these categories:
   Examples: "who is currently raising", "what deals are active", "what's changed recently"
   These require checking if older information has been superseded by newer information.
 
-- portfolio: Questions about existing investments, portfolio companies, follow-ons (not raw financial metrics)
+- portfolio: Questions about existing investments, portfolio companies, follow-ons (qualitative or status, not a specific metric figure)
   Examples: "how are our portfolio companies doing", "which portfolio company is in this space"
-  If the user asks for revenue, ARR, valuation, funding amount, or headcount, use factual instead.
+  If the user asks for NRR, ARR, MRR, burn, runway, or similar KPIs, use metrics. For funding round size, valuation, or headcount as a single number, use factual.
 
 - counting: Simple aggregation or counting from records (not full-pipeline analytics)
   Examples: "how many deals did we see in 2024", "how many companies in the India pipeline", "average check size"
   Prefer pattern for sector mix, pipeline growth, source effectiveness, or cold-rate style questions.
 
-- factual: Specific data points about a company — revenue, ARR, funding amount, valuation, headcount
-  Examples: "what is Arnica's revenue", "how much has X raised", "what is Y's valuation"
+- factual: Specific data points about a company — funding amount, valuation, headcount, or revenue when not framed as a tracked operational metric
+  Examples: "how much has X raised", "what is Y's valuation", "what is Arnica's headcount"
   These require precise data. If not available, say so clearly — never estimate.
+
+- metrics: Specific financial or operational metrics for a company (NRR, ARR, MRR, burn rate, runway, growth rate, etc.)
+  Examples: "what is AmplifAI's NRR", "what is the ARR for Arnica",
+  "what is the burn rate for X", "how much runway does Y have"
+  These require precise data with source attribution and credibility scoring. Prefer metrics over factual for NRR/ARR/MRR/burn/runway.
 
 - graph: Questions about connections, paths, network relationships between entities
   Examples: "how is Ravish connected to Arnica", "what do these two companies have in common",
