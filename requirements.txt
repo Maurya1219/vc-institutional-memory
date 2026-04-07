@@ -4,6 +4,7 @@ uvicorn[standard]
 httpx
 itsdangerous
 requests
+beautifulsoup4
 python-dotenv
 openai
 langchain
