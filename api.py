@@ -30,7 +30,7 @@ POST_LOGOUT_REDIRECT_URI = os.getenv(
     "https://web-production-f614a.up.railway.app",
 )
 
-SCOPES = ["User.Read"]
+SCOPES = ["User.Read", "Mail.Read"]
 
 CACHE_DIR = Path("affinity_cache")
 SYNC_LOG = CACHE_DIR / "sync_log.json"
